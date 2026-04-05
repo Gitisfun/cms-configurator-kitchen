@@ -12,14 +12,7 @@
       @drop.prevent="onDrop"
       @click="openFilePicker"
     >
-      <input
-        ref="fileInput"
-        type="file"
-        :multiple="multiple"
-        :accept="accept"
-        class="dropzone__input"
-        @change="onFileSelect"
-      />
+      <input ref="fileInput" type="file" :multiple="multiple" :accept="accept" class="dropzone__input" @change="onFileSelect" />
 
       <template v-if="stagedFiles.length === 0">
         <div class="dropzone__icon-wrap">
@@ -32,19 +25,10 @@
 
     <div v-if="stagedFiles.length > 0" class="staged">
       <div class="staged__header">
-        <h3 class="staged__title">
-          {{ stagedFiles.length }} {{ stagedFiles.length === 1 ? 'file' : 'files' }} selected
-        </h3>
+        <h3 class="staged__title">{{ stagedFiles.length }} {{ stagedFiles.length === 1 ? 'file' : 'files' }} selected</h3>
         <div class="staged__actions">
-          <BaseButton type="button" variant="outlined" @click="clearStaged">
-            Cancel
-          </BaseButton>
-          <BaseButton
-            type="button"
-            :disabled="uploading"
-            :loading="uploading"
-            @click="uploadFiles"
-          >
+          <BaseButton type="button" variant="outlined" @click="clearStaged"> Cancel </BaseButton>
+          <BaseButton type="button" :disabled="uploading" :loading="uploading" @click="uploadFiles">
             <Icon v-if="!uploading" name="lucide:upload" class="base-btn__icon" />
             {{ uploading ? 'Uploading...' : 'Upload All' }}
           </BaseButton>
@@ -52,42 +36,20 @@
       </div>
 
       <div class="staged__grid">
-        <div
-          v-for="(file, index) in stagedFiles"
-          :key="index"
-          class="staged__file"
-        >
+        <div v-for="(file, index) in stagedFiles" :key="index" class="staged__file">
           <div class="staged__preview">
-            <img
-              v-if="file.preview"
-              :src="file.preview"
-              :alt="file.raw.name"
-              class="staged__image"
-            />
+            <img v-if="file.preview" :src="file.preview" :alt="file.raw.name" class="staged__image" />
             <div v-else class="staged__file-icon">
               <Icon :name="getFileIcon(file.raw.name)" />
             </div>
 
-            <button
-              type="button"
-              class="staged__remove"
-              title="Remove file"
-              @click.stop="removeStaged(index)"
-            >
+            <button type="button" class="staged__remove" title="Remove file" @click.stop="removeStaged(index)">
               <Icon name="lucide:x" />
             </button>
 
             <div v-if="file.status !== 'idle'" class="staged__overlay">
-              <Icon
-                v-if="file.status === 'success'"
-                name="lucide:check-circle"
-                class="staged__status-icon staged__status-icon--success"
-              />
-              <Icon
-                v-else-if="file.status === 'error'"
-                name="lucide:alert-circle"
-                class="staged__status-icon staged__status-icon--error"
-              />
+              <Icon v-if="file.status === 'success'" name="lucide:check-circle" class="staged__status-icon staged__status-icon--success" />
+              <Icon v-else-if="file.status === 'error'" name="lucide:alert-circle" class="staged__status-icon staged__status-icon--error" />
               <span v-else class="staged__loader" />
             </div>
           </div>
@@ -98,32 +60,19 @@
       </div>
     </div>
 
-    <BaseMessage
-      v-if="errorMessage"
-      variant="error"
-      @dismiss="errorMessage = ''"
-    >
+    <BaseMessage v-if="errorMessage" variant="error" @dismiss="errorMessage = ''">
       {{ errorMessage }}
     </BaseMessage>
 
-    <BaseMessage
-      v-if="successMessage"
-      variant="success"
-      @dismiss="successMessage = ''"
-    >
+    <BaseMessage v-if="successMessage" variant="success" @dismiss="successMessage = ''">
       {{ successMessage }}
     </BaseMessage>
   </div>
 </template>
 
 <script setup lang="ts">
-import { uploadMedia } from '../../utils/service/upload';
-
-interface StagedFile {
-  raw: File;
-  preview: string | null;
-  status: 'idle' | 'uploading' | 'success' | 'error';
-}
+import type { StagedFile } from '../../models/file-upload';
+import { uploadMedia } from '../../services/upload';
 
 const props = withDefaults(
   defineProps<{

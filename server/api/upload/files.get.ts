@@ -1,3 +1,5 @@
+import type { StrapiFile, StrapiMetaPagination } from '../../../app/models/strapi-upload';
+
 function mapFile(config: { strapiUrl: string }, file: StrapiFile) {
   return {
     id: file.id,
@@ -109,38 +111,3 @@ export default defineEventHandler(async (event) => {
     hasPreviousPage: page > 1,
   };
 });
-
-interface StrapiMetaPagination {
-  page?: number;
-  pageSize?: number;
-  pageCount?: number;
-  total?: number;
-  start?: number;
-  limit?: number;
-}
-
-interface StrapiFileFormat {
-  url: string;
-  width: number;
-  height: number;
-  size: number;
-}
-
-interface StrapiFile {
-  id: number;
-  name: string;
-  alternativeText: string | null;
-  ext: string;
-  mime: string;
-  size: number;
-  width: number | null;
-  height: number | null;
-  url: string;
-  formats: {
-    thumbnail?: StrapiFileFormat;
-    small?: StrapiFileFormat;
-    medium?: StrapiFileFormat;
-    large?: StrapiFileFormat;
-  } | null;
-  createdAt: string;
-}

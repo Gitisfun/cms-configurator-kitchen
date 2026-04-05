@@ -1,26 +1,6 @@
-export interface Plinth {
-  id: number;
-  documentId: string;
-  name: string;
-  price: number | string | null;
-  color: string | null;
-  image?: unknown;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string | null;
-}
+import type { PlinthsResponse } from '../models/plinth';
 
-export interface PlinthsResponse {
-  data: Plinth[];
-  meta: {
-    pagination: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
-  };
-}
+export type { Plinth, PlinthsResponse } from '../models/plinth';
 
 export const plinthsListPath = '/api/plinths' as const;
 

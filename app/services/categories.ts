@@ -1,23 +1,6 @@
-export interface Category {
-  id: number;
-  documentId: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string | null;
-}
+import type { CategoriesResponse } from '../models/category';
 
-export interface CategoriesResponse {
-  data: Category[];
-  meta: {
-    pagination: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
-  };
-}
+export type { Category, CategoriesResponse } from '../models/category';
 
 export const categoriesListPath = '/api/categories' as const;
 

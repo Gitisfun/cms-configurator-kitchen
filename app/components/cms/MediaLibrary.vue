@@ -77,27 +77,7 @@
 </template>
 
 <script setup lang="ts">
-interface MediaFile {
-  id: number;
-  name: string;
-  alternativeText: string | null;
-  ext: string;
-  mime: string;
-  size: number;
-  width: number | null;
-  height: number | null;
-  url: string;
-  thumbnail: string | null;
-  createdAt: string;
-}
-
-interface MediaFilesPage {
-  data: MediaFile[];
-  page: number;
-  pageSize: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
+import type { MediaFilesPage } from '../../models/media';
 
 const props = withDefaults(
   defineProps<{

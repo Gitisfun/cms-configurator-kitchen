@@ -1,23 +1,9 @@
+import type { MediaFilesPage } from '../models/media';
+
+export type { MediaFileRow, MediaFilesPage, MediaPickerFile } from '../models/media';
+
 export const uploadPath = '/api/upload' as const;
 export const uploadFilesListPath = '/api/upload/files' as const;
-
-export interface MediaFileRow {
-  id: number;
-  name: string;
-  mime: string;
-  url: string;
-  thumbnail: string | null;
-}
-
-export type MediaPickerFile = MediaFileRow;
-
-export interface MediaFilesPage {
-  data: MediaFileRow[];
-  page: number;
-  pageSize: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
 
 export function uploadMedia(formData: FormData, endpoint: string = uploadPath) {
   return $fetch<unknown>(endpoint, {

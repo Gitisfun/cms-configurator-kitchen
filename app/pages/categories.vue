@@ -1,9 +1,6 @@
 <template>
   <div>
-    <CmsPageHeader
-      title="Categories"
-      description="Organize products into categories and subcategories."
-    >
+    <CmsPageHeader title="Categories" description="Organize products into categories and subcategories.">
       <template #actions>
         <BaseButton type="button" @click="openCreateModal">
           <Icon name="lucide:folder-plus" class="base-btn__icon" />
@@ -12,15 +9,7 @@
       </template>
     </CmsPageHeader>
 
-    <BasePanel
-      :pending="pending"
-      :error="!!error"
-      :pagination="pagination"
-      :empty-first-page="categories.length === 0 && page === 1"
-      :empty-off-page="categories.length === 0 && page > 1"
-      :item-count="categories.length"
-      :page="page"
-    >
+    <BasePanel :pending="pending" :error="!!error" :pagination="pagination" :empty-first-page="categories.length === 0 && page === 1" :empty-off-page="categories.length === 0 && page > 1" :item-count="categories.length" :page="page">
       <template #toolbar>
         {{ pagination!.total }}
         {{ pagination!.total === 1 ? 'category' : 'categories' }}
@@ -29,18 +18,14 @@
       <template #error>
         <Icon name="lucide:alert-triangle" class="base-panel__alert-icon" />
         <span>Failed to load categories.</span>
-        <BaseButton type="button" variant="outlined" size="sm" @click="refresh()">
-          Retry
-        </BaseButton>
+        <BaseButton type="button" variant="outlined" size="sm" @click="refresh()"> Retry </BaseButton>
       </template>
       <template #empty>
         <div class="base-panel__empty-icon">
           <Icon name="lucide:folder-tree" />
         </div>
         <h3 class="base-panel__empty-title">No categories yet</h3>
-        <p class="base-panel__empty-desc">
-          Create categories in Strapi or use the API to add your first category.
-        </p>
+        <p class="base-panel__empty-desc">Create categories in Strapi or use the API to add your first category.</p>
         <BaseButton type="button" @click="openCreateModal">
           <Icon name="lucide:folder-plus" class="base-btn__icon" />
           Create Category
@@ -48,9 +33,7 @@
       </template>
       <template #empty-offpage>
         <p class="base-panel__empty-page">No categories on this page.</p>
-        <BaseButton type="button" variant="outlined" @click="page = 1">
-          Back to first page
-        </BaseButton>
+        <BaseButton type="button" variant="outlined" @click="page = 1"> Back to first page </BaseButton>
       </template>
 
       <BaseTable>
@@ -75,22 +58,11 @@
           <td>{{ formatDate(cat.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
-              <BaseButton
-                type="button"
-                variant="text"
-                :disabled="deletingDocumentId === cat.documentId"
-                @click="openEditModal(cat)"
-              >
+              <BaseButton type="button" variant="text" :disabled="deletingDocumentId === cat.documentId" @click="openEditModal(cat)">
                 <Icon name="lucide:pencil" class="base-btn__icon" />
                 Edit
               </BaseButton>
-              <BaseButton
-                type="button"
-                variant="text"
-                danger
-                :disabled="deletingDocumentId === cat.documentId"
-                @click="confirmDelete(cat)"
-              >
+              <BaseButton type="button" variant="text" danger :disabled="deletingDocumentId === cat.documentId" @click="confirmDelete(cat)">
                 <Icon name="lucide:trash-2" class="base-btn__icon" />
                 Delete
               </BaseButton>
@@ -100,13 +72,7 @@
       </BaseTable>
 
       <template #pagination>
-        <BasePagination
-          v-model:page="page"
-          :page-count="pagination!.pageCount"
-          :disabled="pending"
-          aria-label="Category pages"
-          variant="panel"
-        />
+        <BasePagination v-model:page="page" :page-count="pagination!.pageCount" :disabled="pending" aria-label="Category pages" variant="panel" />
       </template>
     </BasePanel>
 
@@ -117,14 +83,7 @@
 <script setup lang="ts">
 import { formatDateTime as formatDate } from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
-import {
-  categoriesListPath,
-  categoriesListQuery,
-  defaultCategoriesResponse,
-  deleteCategory,
-  type Category,
-  type CategoriesResponse,
-} from '../utils/service/categories';
+import { categoriesListPath, categoriesListQuery, defaultCategoriesResponse, deleteCategory, type Category, type CategoriesResponse } from '../services/categories';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
@@ -160,5 +119,4 @@ async function confirmDelete(cat: Category) {
     deletingDocumentId.value = null;
   }
 }
-
 </script>

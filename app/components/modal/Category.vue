@@ -1,42 +1,12 @@
 <template>
-  <BaseModal
-    v-model="modalOpen"
-    title-id="category-modal-title"
-    :title="editingCategory ? 'Edit category' : 'New category'"
-    size="narrow"
-    :close-disabled="formSaving"
-    :close-on-backdrop="!formSaving"
-  >
+  <BaseModal v-model="modalOpen" title-id="category-modal-title" :title="editingCategory ? 'Edit category' : 'New category'" size="narrow" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
     <form id="category-modal-form" @submit.prevent="submitModal">
-      <BaseInputField
-        ref="nameInputRef"
-        v-model="formName"
-        label="Name"
-        type="text"
-        name="name"
-        autocomplete="off"
-        maxlength="255"
-        required
-        :disabled="formSaving"
-      />
+      <BaseInputField ref="nameInputRef" v-model="formName" label="Name" type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
       <p v-if="formError" class="base-modal__error">{{ formError }}</p>
     </form>
     <template #footer>
-      <BaseButton
-        type="button"
-        variant="outlined"
-        :disabled="formSaving"
-        @click="closeModal"
-      >
-        Cancel
-      </BaseButton>
-      <BaseButton
-        type="submit"
-        form="category-modal-form"
-        variant="primary"
-        :disabled="formSaving"
-        :loading="formSaving"
-      >
+      <BaseButton type="button" variant="outlined" :disabled="formSaving" @click="closeModal"> Cancel </BaseButton>
+      <BaseButton type="submit" form="category-modal-form" variant="primary" :disabled="formSaving" :loading="formSaving">
         {{ formSaving ? 'Saving…' : 'Save' }}
       </BaseButton>
     </template>
@@ -45,11 +15,7 @@
 
 <script setup lang="ts">
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
-import {
-  createCategory,
-  updateCategory,
-  type Category,
-} from '../../utils/service/categories';
+import { createCategory, updateCategory, type Category } from '../../services/categories';
 
 export type CategoryModalRow = Category;
 

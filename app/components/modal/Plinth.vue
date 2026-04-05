@@ -1,121 +1,34 @@
 <template>
   <div>
-    <BaseModal
-      v-model="modalOpen"
-      title-id="plinth-modal-title"
-      :title="editingPlinth ? 'Edit plinth' : 'New plinth'"
-      size="medium"
-      :close-disabled="formSaving"
-      :close-on-backdrop="!formSaving"
-    >
+    <BaseModal v-model="modalOpen" title-id="plinth-modal-title" :title="editingPlinth ? 'Edit plinth' : 'New plinth'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="plinth-modal-form" @submit.prevent="submitModal">
-        <BaseInputField
-          ref="nameInputRef"
-          v-model="formName"
-          label="Name"
-          required-mark
-          type="text"
-          name="name"
-          autocomplete="off"
-          maxlength="255"
-          required
-          :disabled="formSaving"
-        />
-        <BaseInputField
-          v-model="formPrice"
-          label="Price"
-          spaced
-          type="text"
-          name="price"
-          inputmode="decimal"
-          placeholder="Optional"
-          :disabled="formSaving"
-        />
-        <BaseInputField
-          v-model="formColor"
-          label="Color"
-          spaced
-          type="text"
-          name="color"
-          maxlength="255"
-          placeholder="Optional"
-          :disabled="formSaving"
-        />
+        <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
+        <BaseInputField v-model="formPrice" label="Price" spaced type="text" name="price" inputmode="decimal" placeholder="Optional" :disabled="formSaving" />
+        <BaseInputField v-model="formColor" label="Color" spaced type="text" name="color" maxlength="255" placeholder="Optional" :disabled="formSaving" />
         <BaseInputField label="Image" spaced>
           <div class="plinth-image-row">
             <div class="plinth-image-preview">
-              <img
-                v-if="modalImagePreview"
-                :src="modalImagePreview"
-                alt=""
-                class="plinth-image-preview__img"
-              />
+              <img v-if="modalImagePreview" :src="modalImagePreview" alt="" class="plinth-image-preview__img" />
               <div v-else class="plinth-image-preview__placeholder">
                 <Icon name="lucide:image" />
                 <span>No image</span>
               </div>
             </div>
             <div class="plinth-image-actions">
-              <input
-                ref="imageFileInputRef"
-                type="file"
-                accept="image/*"
-                class="visually-hidden"
-                tabindex="-1"
-                aria-hidden="true"
-                @change="onPlinthImageFile"
-              />
-              <BaseButton
-                type="button"
-                variant="outlined"
-                size="sm"
-                :disabled="formSaving || uploadingImage"
-                :loading="uploadingImage"
-                @click="imageFileInputRef?.click()"
-              >
+              <input ref="imageFileInputRef" type="file" accept="image/*" class="visually-hidden" tabindex="-1" aria-hidden="true" @change="onPlinthImageFile" />
+              <BaseButton type="button" variant="outlined" size="sm" :disabled="formSaving || uploadingImage" :loading="uploadingImage" @click="imageFileInputRef?.click()">
                 {{ uploadingImage ? 'Uploading…' : 'Upload' }}
               </BaseButton>
-              <BaseButton
-                type="button"
-                variant="outlined"
-                size="sm"
-                :disabled="formSaving"
-                @click="openMediaPicker"
-              >
-                From library
-              </BaseButton>
-              <BaseButton
-                v-if="canRemovePlinthImage"
-                type="button"
-                variant="text"
-                danger
-                size="sm"
-                :disabled="formSaving"
-                @click="clearPlinthImage"
-              >
-                Remove
-              </BaseButton>
+              <BaseButton type="button" variant="outlined" size="sm" :disabled="formSaving" @click="openMediaPicker"> From library </BaseButton>
+              <BaseButton v-if="canRemovePlinthImage" type="button" variant="text" danger size="sm" :disabled="formSaving" @click="clearPlinthImage"> Remove </BaseButton>
             </div>
           </div>
         </BaseInputField>
         <p v-if="formError" class="base-modal__error">{{ formError }}</p>
       </form>
       <template #footer>
-        <BaseButton
-          type="button"
-          variant="outlined"
-          :disabled="formSaving"
-          @click="closeModal"
-        >
-          Cancel
-        </BaseButton>
-        <BaseButton
-          type="submit"
-          form="plinth-modal-form"
-          variant="primary"
-          :disabled="formSaving"
-          :loading="formSaving"
-        >
+        <BaseButton type="button" variant="outlined" :disabled="formSaving" @click="closeModal"> Cancel </BaseButton>
+        <BaseButton type="submit" form="plinth-modal-form" variant="primary" :disabled="formSaving" :loading="formSaving">
           {{ formSaving ? 'Saving…' : 'Save' }}
         </BaseButton>
       </template>
@@ -128,13 +41,7 @@
 <script setup lang="ts">
 import type { MediaPickerFile } from './Media.vue';
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
-import {
-  createPlinth,
-  parseUploadResponseId,
-  updatePlinth,
-  uploadMedia,
-  type Plinth,
-} from '../../utils/service';
+import { createPlinth, parseUploadResponseId, updatePlinth, uploadMedia, type Plinth } from '../../services';
 import { extractPlinthImage } from '../../utils/plinthImage';
 import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 

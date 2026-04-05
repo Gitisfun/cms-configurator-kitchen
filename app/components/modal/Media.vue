@@ -1,11 +1,5 @@
 <template>
-  <BaseModal
-    v-model="open"
-    title="Choose image"
-    title-id="plinth-media-picker-title"
-    size="wide"
-    :overlay-z-index="210"
-  >
+  <BaseModal v-model="open" title="Choose image" title-id="plinth-media-picker-title" size="wide" :overlay-z-index="210">
     <div class="picker-body">
       <div v-if="mediaLoadPending" class="picker-loading">
         <span class="modal-media__spinner" />
@@ -13,35 +7,14 @@
       </div>
       <p v-else-if="mediaLoadError" class="base-modal__error">{{ mediaLoadError }}</p>
       <template v-else>
-        <p v-if="pickerImageFiles.length === 0" class="picker-empty">
-          No images in the library yet. Upload files on the Media page.
-        </p>
+        <p v-if="pickerImageFiles.length === 0" class="picker-empty">No images in the library yet. Upload files on the Media page.</p>
         <div v-else class="picker-grid">
-          <button
-            v-for="f in pickerImageFiles"
-            :key="f.id"
-            type="button"
-            class="picker-tile"
-            :title="f.name"
-            @click="onSelect(f)"
-          >
-            <img
-              :src="f.thumbnail || f.url"
-              :alt="f.name"
-              loading="lazy"
-            />
+          <button v-for="f in pickerImageFiles" :key="f.id" type="button" class="picker-tile" :title="f.name" @click="onSelect(f)">
+            <img :src="f.thumbnail || f.url" :alt="f.name" loading="lazy" />
           </button>
         </div>
         <div v-if="pickerHasNextPage" class="picker-footer">
-          <BaseButton
-            type="button"
-            variant="outlined"
-            size="sm"
-            :disabled="mediaLoadPending"
-            @click="loadMore"
-          >
-            Load more
-          </BaseButton>
+          <BaseButton type="button" variant="outlined" size="sm" :disabled="mediaLoadPending" @click="loadMore"> Load more </BaseButton>
         </div>
       </template>
     </div>
@@ -49,10 +22,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  fetchMediaFilesPage,
-  type MediaPickerFile,
-} from '../../utils/service/upload';
+import type { MediaPickerFile } from '../../models/media';
+import { fetchMediaFilesPage } from '../../services/upload';
 
 export type { MediaPickerFile };
 
@@ -68,9 +39,7 @@ const mediaPickerFiles = ref<MediaPickerFile[]>([]);
 const pickerHasNextPage = ref(false);
 const pickerPage = ref(1);
 
-const pickerImageFiles = computed(() =>
-  mediaPickerFiles.value.filter((f) => f.mime.startsWith('image/')),
-);
+const pickerImageFiles = computed(() => mediaPickerFiles.value.filter((f) => f.mime.startsWith('image/')));
 
 async function fetchPickerPage(nextPage: number, replace: boolean) {
   mediaLoadPending.value = true;
