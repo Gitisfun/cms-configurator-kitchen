@@ -122,33 +122,14 @@
         </tr>
       </BaseTable>
 
-      <nav
+      <BasePagination
         v-if="!error && !pending && pagination && (plinths.length > 0 || page > 1)"
-        class="pager"
+        v-model:page="page"
+        :page-count="pagination.pageCount"
+        :disabled="pending"
         aria-label="Plinth pages"
-      >
-        <BaseButton
-          type="button"
-          variant="outlined"
-          :disabled="page <= 1 || pending"
-          @click="page--"
-        >
-          <Icon name="lucide:chevron-left" class="base-btn__icon" />
-          Previous
-        </BaseButton>
-        <span class="pager__info">
-          Page {{ pagination.page }} of {{ pagination.pageCount }}
-        </span>
-        <BaseButton
-          type="button"
-          variant="outlined"
-          :disabled="page >= pagination.pageCount || pending"
-          @click="page++"
-        >
-          Next
-          <Icon name="lucide:chevron-right" class="base-btn__icon" />
-        </BaseButton>
-      </nav>
+        variant="panel"
+      />
     </section>
 
     <Teleport to="body">
@@ -1292,25 +1273,6 @@ onUnmounted(() => {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--color-border);
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem 1.25rem;
-  flex-wrap: wrap;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.pager__info {
-  font-size: var(--paragraph-size-small);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  min-width: 8rem;
-  text-align: center;
 }
 
 @keyframes spin {

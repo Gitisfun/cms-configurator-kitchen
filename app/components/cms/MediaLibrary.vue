@@ -64,31 +64,15 @@
       </div>
     </div>
 
-    <nav
+    <BasePagination
       v-if="!loadError && !loadingFiles && (mediaFiles.length > 0 || hasPreviousPage || hasNextPage)"
-      class="library__pager"
+      v-model:page="page"
+      :has-previous-page="hasPreviousPage"
+      :has-next-page="hasNextPage"
+      :disabled="loadingFiles"
       aria-label="Media library pages"
-    >
-      <BaseButton
-        type="button"
-        variant="outlined"
-        :disabled="!hasPreviousPage || loadingFiles"
-        @click="page--"
-      >
-        <Icon name="lucide:chevron-left" class="base-btn__icon" />
-        Previous
-      </BaseButton>
-      <span class="library__pager-info">Page {{ page }}</span>
-      <BaseButton
-        type="button"
-        variant="outlined"
-        :disabled="!hasNextPage || loadingFiles"
-        @click="page++"
-      >
-        Next
-        <Icon name="lucide:chevron-right" class="base-btn__icon" />
-      </BaseButton>
-    </nav>
+      variant="section"
+    />
   </section>
 </template>
 
@@ -202,23 +186,6 @@ defineExpose({
   margin: 0 0 0.75rem;
   font-size: var(--paragraph-size-medium);
   color: var(--color-text-muted);
-}
-
-.library__pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.library__pager-info {
-  font-size: var(--paragraph-size-small);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  min-width: 5rem;
-  text-align: center;
 }
 
 .library__loading {
