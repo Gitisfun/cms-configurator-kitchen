@@ -60,55 +60,51 @@
         </BaseButton>
       </div>
 
-      <div v-else class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Published</th>
-              <th scope="col">Updated</th>
-              <th scope="col" class="table__th-actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cat in categories" :key="cat.documentId">
-              <td>
-                <div class="table__name">
-                  <span class="table__folder">
-                    <Icon name="lucide:folder" />
-                  </span>
-                  <span class="table__name-text">{{ cat.name }}</span>
-                </div>
-              </td>
-              <td>{{ formatDate(cat.publishedAt) }}</td>
-              <td>{{ formatDate(cat.updatedAt) }}</td>
-              <td class="table__actions">
-                <div class="table__action-btns">
-                  <BaseButton
-                    type="button"
-                    variant="text"
-                    :disabled="deletingDocumentId === cat.documentId"
-                    @click="openEditModal(cat)"
-                  >
-                    <Icon name="lucide:pencil" class="base-btn__icon" />
-                    Edit
-                  </BaseButton>
-                  <BaseButton
-                    type="button"
-                    variant="text"
-                    danger
-                    :disabled="deletingDocumentId === cat.documentId"
-                    @click="confirmDelete(cat)"
-                  >
-                    <Icon name="lucide:trash-2" class="base-btn__icon" />
-                    Delete
-                  </BaseButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <BaseTable v-else>
+        <template #head>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Published</th>
+            <th scope="col">Updated</th>
+            <th scope="col" class="base-table__th-actions">Actions</th>
+          </tr>
+        </template>
+        <tr v-for="cat in categories" :key="cat.documentId">
+          <td>
+            <div class="base-table__name">
+              <span class="base-table__icon">
+                <Icon name="lucide:folder" />
+              </span>
+              <span class="base-table__name-text">{{ cat.name }}</span>
+            </div>
+          </td>
+          <td>{{ formatDate(cat.publishedAt) }}</td>
+          <td>{{ formatDate(cat.updatedAt) }}</td>
+          <td class="base-table__actions">
+            <div class="base-table__action-btns">
+              <BaseButton
+                type="button"
+                variant="text"
+                :disabled="deletingDocumentId === cat.documentId"
+                @click="openEditModal(cat)"
+              >
+                <Icon name="lucide:pencil" class="base-btn__icon" />
+                Edit
+              </BaseButton>
+              <BaseButton
+                type="button"
+                variant="text"
+                danger
+                :disabled="deletingDocumentId === cat.documentId"
+                @click="confirmDelete(cat)"
+              >
+                <Icon name="lucide:trash-2" class="base-btn__icon" />
+                Delete
+              </BaseButton>
+            </div>
+          </td>
+        </tr>
+      </BaseTable>
 
       <nav
         v-if="!error && !pending && pagination && (categories.length > 0 || page > 1)"
@@ -514,88 +510,6 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-}
-
-/* ---- Table ---- */
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--paragraph-size-small);
-}
-
-.table th,
-.table td {
-  padding: 0.875rem 1.25rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table th {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted-strong);
-  background: var(--color-surface);
-  white-space: nowrap;
-}
-
-.table td {
-  color: var(--color-text-primary);
-  vertical-align: middle;
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover td {
-  background: var(--color-surface-hover);
-}
-
-.table__name {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-width: 0;
-}
-
-.table__folder {
-  display: flex;
-  color: var(--color-brand);
-  flex-shrink: 0;
-}
-
-.table__folder :deep(svg) {
-  width: 18px;
-  height: 18px;
-}
-
-.table__name-text {
-  font-weight: var(--font-weight-medium);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.table__th-actions {
-  width: 1%;
-  text-align: right;
-}
-
-.table__actions {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.table__action-btns {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
 }
 
 /* ---- Modal ---- */

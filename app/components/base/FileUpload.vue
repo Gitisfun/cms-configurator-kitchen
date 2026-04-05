@@ -98,21 +98,21 @@
       </div>
     </div>
 
-    <div v-if="errorMessage" class="upload-error">
-      <Icon name="lucide:alert-triangle" class="upload-error__icon" />
-      <span>{{ errorMessage }}</span>
-      <button type="button" class="upload-error__close" @click="errorMessage = ''">
-        <Icon name="lucide:x" />
-      </button>
-    </div>
+    <BaseMessage
+      v-if="errorMessage"
+      variant="error"
+      @dismiss="errorMessage = ''"
+    >
+      {{ errorMessage }}
+    </BaseMessage>
 
-    <div v-if="successMessage" class="upload-success">
-      <Icon name="lucide:check-circle" class="upload-success__icon" />
-      <span>{{ successMessage }}</span>
-      <button type="button" class="upload-success__close" @click="successMessage = ''">
-        <Icon name="lucide:x" />
-      </button>
-    </div>
+    <BaseMessage
+      v-if="successMessage"
+      variant="success"
+      @dismiss="successMessage = ''"
+    >
+      {{ successMessage }}
+    </BaseMessage>
   </div>
 </template>
 
@@ -472,56 +472,6 @@ defineExpose({ openFilePicker });
 .staged__size {
   font-size: 12px;
   color: var(--color-text-muted);
-}
-
-.upload-error,
-.upload-success {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--button-radius);
-  font-size: var(--paragraph-size-small);
-  font-weight: var(--font-weight-medium);
-}
-
-.upload-error {
-  background: var(--color-error-muted);
-  color: var(--color-error);
-}
-
-.upload-success {
-  background: var(--color-success-muted);
-  color: #047a3a;
-}
-
-.upload-error__icon,
-.upload-success__icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.upload-error__close,
-.upload-success__close {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: none;
-  color: inherit;
-  opacity: 0.6;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.upload-error__close:hover,
-.upload-success__close:hover {
-  opacity: 1;
 }
 
 @keyframes spin {
