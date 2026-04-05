@@ -25,6 +25,12 @@ export function defaultCategoriesResponse(pageSize: number): CategoriesResponse 
   };
 }
 
+export function getAllCategories(page: number, pageSize: number) {
+  return $fetch<CategoriesResponse>(categoriesListPath, {
+    query: categoriesListQuery(page, pageSize),
+  });
+}
+
 export function createCategory(body: { name: string }) {
   return $fetch(categoriesListPath, {
     method: 'POST',

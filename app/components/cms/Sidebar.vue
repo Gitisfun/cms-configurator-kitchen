@@ -68,6 +68,12 @@ const mainItems = [
 const contentItems = [
   { to: '/products', icon: 'lucide:package', text: 'Products' },
   { to: '/categories', icon: 'lucide:folder-tree', text: 'Categories' },
+  { to: '/subcategories', icon: 'lucide:folder-git-2', text: 'Subcategories' },
+  { to: '/price-classes', icon: 'lucide:layers', text: 'Price classes' },
+  { to: '/fronts', icon: 'lucide:panels-top-left', text: 'Fronts' },
+  { to: '/backs', icon: 'lucide:panel-bottom', text: 'Backs' },
+  { to: '/handle-positions', icon: 'lucide:crosshair', text: 'Handle positions' },
+  { to: '/handles', icon: 'lucide:grip-vertical', text: 'Handles' },
   { to: '/plinths', icon: 'lucide:stretch-horizontal', text: 'Plinths' },
   { to: '/orders', icon: 'lucide:shopping-cart', text: 'Orders' },
   { to: '/media', icon: 'lucide:image', text: 'Media' },
