@@ -117,6 +117,8 @@
 </template>
 
 <script setup lang="ts">
+import { uploadMedia } from '../../utils/service/upload';
+
 interface StagedFile {
   raw: File;
   preview: string | null;
@@ -240,10 +242,7 @@ async function uploadFiles() {
       const formData = new FormData();
       formData.append('files', file.raw);
 
-      await $fetch(props.uploadEndpoint, {
-        method: 'POST',
-        body: formData,
-      });
+      await uploadMedia(formData, props.uploadEndpoint);
 
       file.status = 'success';
       successCount++;
