@@ -5,10 +5,10 @@
       description="Upload and manage images, 3D models, and other assets."
     >
       <template #actions>
-        <button type="button" class="btn btn--primary" @click="fileUploadRef?.openFilePicker()">
-          <Icon name="lucide:upload" class="btn__icon" />
+        <BaseButton type="button" @click="fileUploadRef?.openFilePicker()">
+          <Icon name="lucide:upload" class="base-btn__icon" />
           Upload Files
-        </button>
+        </BaseButton>
       </template>
     </CmsPageHeader>
 
@@ -31,7 +31,9 @@
       <div v-else-if="loadError" class="upload-error">
         <Icon name="lucide:alert-triangle" class="upload-error__icon" />
         <span>{{ loadError }}</span>
-        <button class="btn btn--outlined btn--sm" @click="refresh()">Retry</button>
+        <BaseButton type="button" variant="outlined" size="sm" @click="refresh()">
+          Retry
+        </BaseButton>
       </div>
 
       <CmsEmptyState
@@ -43,9 +45,9 @@
 
       <template v-else-if="mediaFiles.length === 0 && page > 1">
         <p class="library__empty-page">No files on this page.</p>
-        <button type="button" class="btn btn--outlined" @click="page = 1">
+        <BaseButton type="button" variant="outlined" @click="page = 1">
           Back to first page
-        </button>
+        </BaseButton>
       </template>
 
       <div v-else class="library__grid">
@@ -83,25 +85,25 @@
         class="library__pager"
         aria-label="Media library pages"
       >
-        <button
+        <BaseButton
           type="button"
-          class="btn btn--outlined"
+          variant="outlined"
           :disabled="!hasPreviousPage || loadingFiles"
           @click="page--"
         >
-          <Icon name="lucide:chevron-left" class="btn__icon" />
+          <Icon name="lucide:chevron-left" class="base-btn__icon" />
           Previous
-        </button>
+        </BaseButton>
         <span class="library__pager-info">Page {{ page }}</span>
-        <button
+        <BaseButton
           type="button"
-          class="btn btn--outlined"
+          variant="outlined"
           :disabled="!hasNextPage || loadingFiles"
           @click="page++"
         >
           Next
-          <Icon name="lucide:chevron-right" class="btn__icon" />
-        </button>
+          <Icon name="lucide:chevron-right" class="base-btn__icon" />
+        </BaseButton>
       </nav>
     </section>
   </div>
@@ -177,57 +179,6 @@ function formatSize(bytes: number): string {
 </script>
 
 <style scoped>
-/* ---- Buttons ---- */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: var(--button-padding-y) var(--button-padding-x);
-  border: none;
-  border-radius: var(--button-radius);
-  font-size: var(--button-font-size);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-button);
-  min-height: var(--button-min-height);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.btn:disabled {
-  opacity: var(--button-disabled-opacity);
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  background: var(--button-primary-bg);
-  color: var(--button-primary-color);
-  box-shadow: var(--button-shadow);
-}
-
-.btn--primary:hover:not(:disabled) {
-  background: var(--button-primary-bg-hover);
-  box-shadow: var(--button-shadow-hover);
-}
-
-.btn--outlined {
-  background: var(--button-outlined-bg);
-  color: var(--button-outlined-color);
-  border: 1px solid var(--button-outlined-border);
-}
-
-.btn--outlined:hover {
-  background: var(--button-outlined-hover-bg);
-}
-
-.btn__icon {
-  width: 16px;
-  height: 16px;
-}
-
 /* ---- Library load error ---- */
 
 .upload-error {

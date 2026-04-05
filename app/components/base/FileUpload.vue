@@ -36,19 +36,18 @@
           {{ stagedFiles.length }} {{ stagedFiles.length === 1 ? 'file' : 'files' }} selected
         </h3>
         <div class="staged__actions">
-          <button type="button" class="btn btn--outlined" @click="clearStaged">
+          <BaseButton type="button" variant="outlined" @click="clearStaged">
             Cancel
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
             type="button"
-            class="btn btn--primary"
             :disabled="uploading"
+            :loading="uploading"
             @click="uploadFiles"
           >
-            <Icon v-if="!uploading" name="lucide:upload" class="btn__icon" />
-            <span v-if="uploading" class="btn__spinner" />
+            <Icon v-if="!uploading" name="lucide:upload" class="base-btn__icon" />
             {{ uploading ? 'Uploading...' : 'Upload All' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -271,64 +270,6 @@ defineExpose({ openFilePicker });
 <style scoped>
 .file-upload {
   display: block;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: var(--button-padding-y) var(--button-padding-x);
-  border: none;
-  border-radius: var(--button-radius);
-  font-size: var(--button-font-size);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-button);
-  min-height: var(--button-min-height);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.btn:disabled {
-  opacity: var(--button-disabled-opacity);
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  background: var(--button-primary-bg);
-  color: var(--button-primary-color);
-  box-shadow: var(--button-shadow);
-}
-
-.btn--primary:hover:not(:disabled) {
-  background: var(--button-primary-bg-hover);
-  box-shadow: var(--button-shadow-hover);
-}
-
-.btn--outlined {
-  background: var(--button-outlined-bg);
-  color: var(--button-outlined-color);
-  border: 1px solid var(--button-outlined-border);
-}
-
-.btn--outlined:hover {
-  background: var(--button-outlined-hover-bg);
-}
-
-.btn__icon {
-  width: 16px;
-  height: 16px;
-}
-
-.btn__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
 }
 
 .dropzone {

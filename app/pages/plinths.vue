@@ -5,10 +5,10 @@
       description="Manage plinth types, pricing, and colors for kitchen configurations."
     >
       <template #actions>
-        <button type="button" class="btn btn--primary" @click="openCreateModal">
-          <Icon name="lucide:plus" class="btn__icon" />
+        <BaseButton type="button" @click="openCreateModal">
+          <Icon name="lucide:plus" class="base-btn__icon" />
           Add plinth
-        </button>
+        </BaseButton>
       </template>
     </CmsPageHeader>
 
@@ -28,9 +28,9 @@
       <div v-else-if="error" class="alert alert--error">
         <Icon name="lucide:alert-triangle" class="alert__icon" />
         <span>Failed to load plinths.</span>
-        <button type="button" class="btn btn--outlined btn--sm" @click="refresh()">
+        <BaseButton type="button" variant="outlined" size="sm" @click="refresh()">
           Retry
-        </button>
+        </BaseButton>
       </div>
 
       <div
@@ -44,10 +44,10 @@
         <p class="panel__empty-desc">
           Add your first plinth with a name. Price and color are optional.
         </p>
-        <button type="button" class="btn btn--primary" @click="openCreateModal">
-          <Icon name="lucide:plus" class="btn__icon" />
+        <BaseButton type="button" @click="openCreateModal">
+          <Icon name="lucide:plus" class="base-btn__icon" />
           Create plinth
-        </button>
+        </BaseButton>
       </div>
 
       <div
@@ -55,9 +55,9 @@
         class="panel__empty-offpage"
       >
         <p class="panel__empty-page">No plinths on this page.</p>
-        <button type="button" class="btn btn--outlined" @click="page = 1">
+        <BaseButton type="button" variant="outlined" @click="page = 1">
           Back to first page
-        </button>
+        </BaseButton>
       </div>
 
       <div v-else class="table-wrap">
@@ -100,24 +100,25 @@
               <td>{{ formatDate(p.updatedAt) }}</td>
               <td class="table__actions">
                 <div class="table__action-btns">
-                  <button
+                  <BaseButton
                     type="button"
-                    class="btn btn--text"
+                    variant="text"
                     :disabled="deletingDocumentId === p.documentId"
                     @click="openEditModal(p)"
                   >
-                    <Icon name="lucide:pencil" class="btn__icon" />
+                    <Icon name="lucide:pencil" class="base-btn__icon" />
                     Edit
-                  </button>
-                  <button
+                  </BaseButton>
+                  <BaseButton
                     type="button"
-                    class="btn btn--text btn--text-danger"
+                    variant="text"
+                    danger
                     :disabled="deletingDocumentId === p.documentId"
                     @click="confirmDelete(p)"
                   >
-                    <Icon name="lucide:trash-2" class="btn__icon" />
+                    <Icon name="lucide:trash-2" class="base-btn__icon" />
                     Delete
-                  </button>
+                  </BaseButton>
                 </div>
               </td>
             </tr>
@@ -130,27 +131,27 @@
         class="pager"
         aria-label="Plinth pages"
       >
-        <button
+        <BaseButton
           type="button"
-          class="btn btn--outlined"
+          variant="outlined"
           :disabled="page <= 1 || pending"
           @click="page--"
         >
-          <Icon name="lucide:chevron-left" class="btn__icon" />
+          <Icon name="lucide:chevron-left" class="base-btn__icon" />
           Previous
-        </button>
+        </BaseButton>
         <span class="pager__info">
           Page {{ pagination.page }} of {{ pagination.pageCount }}
         </span>
-        <button
+        <BaseButton
           type="button"
-          class="btn btn--outlined"
+          variant="outlined"
           :disabled="page >= pagination.pageCount || pending"
           @click="page++"
         >
           Next
-          <Icon name="lucide:chevron-right" class="btn__icon" />
-        </button>
+          <Icon name="lucide:chevron-right" class="base-btn__icon" />
+        </BaseButton>
       </nav>
     </section>
 
@@ -245,49 +246,57 @@
                     aria-hidden="true"
                     @change="onPlinthImageFile"
                   />
-                  <button
+                  <BaseButton
                     type="button"
-                    class="btn btn--outlined btn--sm"
+                    variant="outlined"
+                    size="sm"
                     :disabled="formSaving || uploadingImage"
+                    :loading="uploadingImage"
                     @click="imageFileInputRef?.click()"
                   >
-                    <span v-if="uploadingImage" class="btn__spinner btn__spinner--dark" />
                     {{ uploadingImage ? 'Uploading…' : 'Upload' }}
-                  </button>
-                  <button
+                  </BaseButton>
+                  <BaseButton
                     type="button"
-                    class="btn btn--outlined btn--sm"
+                    variant="outlined"
+                    size="sm"
                     :disabled="formSaving"
                     @click="openMediaPicker"
                   >
                     From library
-                  </button>
-                  <button
+                  </BaseButton>
+                  <BaseButton
                     v-if="canRemovePlinthImage"
                     type="button"
-                    class="btn btn--text btn--text-danger btn--sm"
+                    variant="text"
+                    danger
+                    size="sm"
                     :disabled="formSaving"
                     @click="clearPlinthImage"
                   >
                     Remove
-                  </button>
+                  </BaseButton>
                 </div>
               </div>
             </div>
             <p v-if="formError" class="modal__error">{{ formError }}</p>
             <div class="modal__footer">
-              <button
+              <BaseButton
                 type="button"
-                class="btn btn--outlined"
+                variant="outlined"
                 :disabled="formSaving"
                 @click="closeModal"
               >
                 Cancel
-              </button>
-              <button type="submit" class="btn btn--primary" :disabled="formSaving">
-                <span v-if="formSaving" class="btn__spinner" />
+              </BaseButton>
+              <BaseButton
+                type="submit"
+                variant="primary"
+                :disabled="formSaving"
+                :loading="formSaving"
+              >
                 {{ formSaving ? 'Saving…' : 'Save' }}
-              </button>
+              </BaseButton>
             </div>
           </form>
         </div>
@@ -347,14 +356,15 @@
                 </button>
               </div>
               <div v-if="pickerHasNextPage" class="picker-footer">
-                <button
+                <BaseButton
                   type="button"
-                  class="btn btn--outlined btn--sm"
+                  variant="outlined"
+                  size="sm"
                   :disabled="mediaLoadPending"
                   @click="loadMorePickerMedia"
                 >
                   Load more
-                </button>
+                </BaseButton>
               </div>
             </template>
           </div>
@@ -896,99 +906,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: var(--button-padding-y) var(--button-padding-x);
-  border: none;
-  border-radius: var(--button-radius);
-  font-size: var(--button-font-size);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-button);
-  min-height: var(--button-min-height);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.btn:disabled {
-  opacity: var(--button-disabled-opacity);
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  background: var(--button-primary-bg);
-  color: var(--button-primary-color);
-  box-shadow: var(--button-shadow);
-}
-
-.btn--primary:hover:not(:disabled) {
-  background: var(--button-primary-bg-hover);
-  box-shadow: var(--button-shadow-hover);
-}
-
-.btn--outlined {
-  background: var(--button-outlined-bg);
-  color: var(--button-outlined-color);
-  border: 1px solid var(--button-outlined-border);
-}
-
-.btn--outlined:hover:not(:disabled) {
-  background: var(--button-outlined-hover-bg);
-}
-
-.btn--sm {
-  min-height: 32px;
-  padding: 0.375rem 0.75rem;
-  font-size: 13px;
-}
-
-.btn__icon {
-  width: 16px;
-  height: 16px;
-}
-
-.btn--text {
-  background: transparent;
-  color: var(--color-brand);
-  border: none;
-  min-height: auto;
-  padding: 0.25rem 0.5rem;
-  font-size: var(--paragraph-size-small);
-  font-weight: var(--font-weight-medium);
-}
-
-.btn--text:hover:not(:disabled) {
-  background: var(--color-success-muted);
-  color: var(--color-brand-hover);
-}
-
-.btn--text-danger {
-  color: var(--color-error);
-}
-
-.btn--text-danger:hover:not(:disabled) {
-  background: var(--color-error-muted);
-  color: var(--color-error);
-}
-
-.btn__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-.btn__spinner--dark {
-  border-color: var(--color-border);
-  border-top-color: var(--color-brand);
-}
-
 .panel {
   background: var(--color-surface-card);
   border: var(--card-border);
@@ -1072,7 +989,7 @@ onUnmounted(() => {
   line-height: var(--line-height-body);
 }
 
-.panel__empty .btn {
+.panel__empty :deep(.base-btn) {
   margin-top: 1.25rem;
 }
 
