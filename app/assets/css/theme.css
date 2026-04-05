@@ -1,0 +1,98 @@
+/**
+ * Theme variables for DE KEUKEN FABRIEK — CMS
+ * Based on the frontend-configurator-kitchen design tokens.
+ */
+
+:root {
+  /* ---------- Colors ---------- */
+  --color-text-primary: #1B3A5C;
+  --color-text-muted: #4a6a8a;
+  --color-text-muted-strong: #2d5070;
+  --color-text-muted-light: #7a9ab5;
+  --color-text-light: #ffffff;
+
+  --color-brand: #00A651;
+  --color-brand-hover: #008c44;
+
+  --color-brand-secondary: #1B3A5C;
+  --color-brand-secondary-hover: #152e4a;
+
+  --color-border: #e2e8f0;
+  --color-border-strong: #1B3A5C;
+  --color-surface: #f8fafb;
+  --color-surface-card: #ffffff;
+  --color-surface-hover: #f0f5f2;
+  --color-error: #c53030;
+  --color-error-muted: #fed7d7;
+  --color-success: #00A651;
+  --color-success-muted: #e6f5ee;
+  --color-info: #1B3A5C;
+  --color-info-muted: #e8eef4;
+  --color-warning: #b7791f;
+  --color-warning-muted: #faf3e6;
+
+  /* ---------- Typography ---------- */
+  --font-sans: 'Source Sans 3', sans-serif;
+  --font-serif: 'Libre Baskerville', serif;
+
+  --letter-spacing-tight: 0.01em;
+  --letter-spacing-body: 0.02em;
+  --letter-spacing-wide: 0.3px;
+  --letter-spacing-button: 0.5px;
+
+  --line-height-heading: 1.3;
+  --line-height-body: 1.6;
+
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* ---------- Breakpoints ---------- */
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+
+  /* ---------- Header ---------- */
+  --header-size-big: 28px;
+  --header-size-big-desktop: 36px;
+  --header-size-medium: 22px;
+  --header-size-medium-desktop: 28px;
+  --header-size-small: 17px;
+  --header-size-small-desktop: 20px;
+
+  /* ---------- Paragraph ---------- */
+  --paragraph-size-small: 13px;
+  --paragraph-size-small-desktop: 14px;
+  --paragraph-size-medium: 15px;
+  --paragraph-size-medium-desktop: 16px;
+  --paragraph-size-large: 17px;
+  --paragraph-size-large-desktop: 18px;
+
+  /* ---------- Button ---------- */
+  --button-primary-bg: var(--color-brand);
+  --button-primary-bg-hover: var(--color-brand-hover);
+  --button-primary-color: var(--color-text-light);
+
+  --button-outlined-bg: var(--color-surface-card);
+  --button-outlined-color: var(--color-border-strong);
+  --button-outlined-border: var(--color-border);
+  --button-outlined-hover-bg: var(--color-surface-hover);
+
+  --button-focus-ring: 2px solid var(--color-brand);
+  --button-focus-offset: 2px;
+  --button-radius: 8px;
+  --button-disabled-opacity: 0.5;
+
+  --button-padding-x: 1.25rem;
+  --button-padding-y: 0.625rem;
+  --button-font-size: 14px;
+  --button-min-height: 38px;
+
+  --button-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --button-shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+  /* ---------- Card ---------- */
+  --card-radius: 12px;
+  --card-padding: 1.5rem;
+  --card-shadow: 0 1px 3px rgba(27, 58, 92, 0.06), 0 1px 2px rgba(27, 58, 92, 0.04);
+  --card-shadow-hover: 0 4px 12px rgba(27, 58, 92, 0.1);
+  --card-border: 1px solid var(--color-border);
+}
