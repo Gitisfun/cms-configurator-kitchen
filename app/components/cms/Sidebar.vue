@@ -31,6 +31,16 @@
       </div>
 
       <div class="sidebar__section">
+        <span class="sidebar__section-label">Cabinets</span>
+        <CmsSidebarItem
+          v-for="item in cabinetItems"
+          :key="item.to"
+          v-bind="item"
+          :collapsed="collapsed"
+        />
+      </div>
+
+      <div class="sidebar__section">
         <span class="sidebar__section-label">System</span>
         <CmsSidebarItem
           v-for="item in systemItems"
@@ -66,7 +76,7 @@ const mainItems = [
 ];
 
 const contentItems = [
-  { to: '/products', icon: 'lucide:package', text: 'Products' },
+  { to: '/products', icon: 'lucide:package', text: 'Products (catalog)' },
   { to: '/categories', icon: 'lucide:folder-tree', text: 'Categories' },
   { to: '/subcategories', icon: 'lucide:folder-git-2', text: 'Subcategories' },
   { to: '/price-classes', icon: 'lucide:layers', text: 'Price classes' },
@@ -77,6 +87,16 @@ const contentItems = [
   { to: '/plinths', icon: 'lucide:stretch-horizontal', text: 'Plinths' },
   { to: '/orders', icon: 'lucide:shopping-cart', text: 'Orders' },
   { to: '/media', icon: 'lucide:image', text: 'Media' },
+];
+
+const cabinetItems = [
+  { to: '/cabinet-series', icon: 'lucide:box', text: 'Cabinet Series' },
+  { to: '/cabinet-types', icon: 'lucide:layout-list', text: 'Cabinet Types' },
+  { to: '/cabinet-variants', icon: 'lucide:copy', text: 'Cabinet Variants' },
+  { to: '/cabinet-prices', icon: 'lucide:tag', text: 'Cabinet Prices' },
+  { to: '/cabinet-accessories', icon: 'lucide:puzzle', text: 'Accessories' },
+  { to: '/cabinet-type-surcharges', icon: 'lucide:percent', text: 'Type surcharges' },
+  { to: '/depth-options', icon: 'lucide:ruler', text: 'Depth Options' },
 ];
 
 const systemItems = [

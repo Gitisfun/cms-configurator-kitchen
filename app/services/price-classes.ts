@@ -11,6 +11,14 @@ export function priceClassesListQuery(page: number, pageSize: number) {
   } as const;
 }
 
+export function priceClassesSortedListQuery(pageSize = 100) {
+  return {
+    'pagination[page]': 1,
+    'pagination[pageSize]': pageSize,
+    'sort[0]': 'level:asc',
+  } as const;
+}
+
 export function defaultPriceClassesResponse(pageSize: number): PriceClassesResponse {
   return {
     data: [],
@@ -28,6 +36,12 @@ export function defaultPriceClassesResponse(pageSize: number): PriceClassesRespo
 export function getAllPriceClasses(page: number, pageSize: number) {
   return $fetch<PriceClassesResponse>(priceClassesListPath, {
     query: priceClassesListQuery(page, pageSize),
+  });
+}
+
+export function getPriceClassesSortedByLevel(pageSize = 100) {
+  return $fetch<PriceClassesResponse>(priceClassesListPath, {
+    query: priceClassesSortedListQuery(pageSize),
   });
 }
 
