@@ -1,9 +1,9 @@
 import type { StrapiListMeta } from './pagination';
 import type { CabinetType } from './cabinet-type';
 
-export type DepthOptionCabinetTypeField =
-  | CabinetType
-  | { data: CabinetType | null }
+export type DepthOptionCabinetTypesField =
+  | CabinetType[]
+  | { data: CabinetType[] }
   | null
   | undefined;
 
@@ -15,7 +15,8 @@ export interface DepthOption {
   surchargeCode: string | null;
   surchargeAmount: number | string | null;
   isDefault: boolean;
-  cabinetType?: DepthOptionCabinetTypeField;
+  /** Many-to-many: cabinet types that use this depth row. */
+  cabinetTypes?: DepthOptionCabinetTypesField;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;

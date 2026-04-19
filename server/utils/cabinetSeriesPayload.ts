@@ -29,19 +29,20 @@ export function buildCabinetSeriesData(body: unknown): Record<string, unknown> {
   if ('carcaseHeight' in b) {
     const v = b.carcaseHeight;
     if (v === null || v === '' || v === undefined) {
-      throw createError({ statusCode: 400, statusMessage: 'Carcase height is required' });
+      data.carcaseHeight = null;
+    } else {
+      const n = typeof v === 'number' ? v : Number(String(v).trim());
+      if (!Number.isFinite(n) || !Number.isInteger(n)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid carcase height' });
+      }
+      data.carcaseHeight = n;
     }
-    const n = typeof v === 'number' ? v : Number(String(v).trim());
-    if (!Number.isFinite(n) || !Number.isInteger(n)) {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid carcase height' });
-    }
-    data.carcaseHeight = n;
   }
 
   if ('defaultCarcaseDepth' in b) {
     const v = b.defaultCarcaseDepth;
     if (v === null || v === '' || v === undefined) {
-      data.defaultCarcaseDepth = 560;
+      data.defaultCarcaseDepth = null;
     } else {
       const n = typeof v === 'number' ? v : Number(String(v).trim());
       if (!Number.isFinite(n) || !Number.isInteger(n)) {

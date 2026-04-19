@@ -45,16 +45,8 @@ const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
 
-/** Set when creating from a cabinet type; edit uses the row’s type. */
-const presetCabinetTypeId = ref<number | null>(null);
-
-function extractCabinetTypeId(row: DepthOption): number | null {
-  const ct = row.cabinetType;
-  if (!ct) return null;
-  if (typeof ct === 'object' && 'id' in ct) return (ct as { id: number }).id;
-  if (typeof ct === 'object' && 'data' in ct && ct.data) return ct.data.id;
-  return null;
-}
+/** When creating, optionally link to a cabinet type by its Strapi document id. */
+const presetCabinetTypeDocumentId = ref<string | null>(null);
 
 function resetForm() {
   formName.value = '';
@@ -66,17 +58,17 @@ function resetForm() {
 }
 
 /**
- * Required by `useModal` / CRUD pattern. New depth options are only created via
- * `openCreateForCabinetType` from the cabinet type editor.
+ * Required by `useModal` / CRUD pattern. New depth options can be created from the depth options list
+ * or with an optional cabinet-type link.
  */
 function openCreate() {
   /* no-op */
 }
 
-/** Create a depth option for a specific cabinet type (numeric Strapi id). */
-function openCreateForCabinetType(cabinetTypeNumericId: number) {
+/** Create a depth option and optionally connect it to a cabinet type (document id). */
+function openCreateForCabinetType(cabinetTypeDocumentId: string) {
   editing.value = null;
-  presetCabinetTypeId.value = cabinetTypeNumericId;
+  presetCabinetTypeDocumentId.value = cabinetTypeDocumentId.trim() || null;
   resetForm();
   modalOpen.value = true;
   nextTick(() => nameInputRef.value?.focus());
@@ -84,7 +76,7 @@ function openCreateForCabinetType(cabinetTypeNumericId: number) {
 
 function openEdit(row: DepthOptionModalRow) {
   editing.value = row;
-  presetCabinetTypeId.value = extractCabinetTypeId(row);
+  presetCabinetTypeDocumentId.value = null;
   formName.value = row.name;
   formDepth.value = String(row.depth);
   formSurchargeCode.value = row.surchargeCode ?? '';
@@ -99,7 +91,18 @@ function closeModal() {
   if (formSaving.value) return;
   modalOpen.value = false;
   editing.value = null;
-  presetCabinetTypeId.value = null;
+  presetCabinetTypeDocumentId.value = null;
+}
+
+function buildBodyScalars(): Record<string, unknown> {
+  const name = formName.value.trim();
+  const depth = Number(formDepth.value);
+  const body: Record<string, unknown> = { name, depth };
+  body.surchargeCode = formSurchargeCode.value.trim() || null;
+  const amt = formSurchargeAmount.value.trim();
+  body.surchargeAmount = amt !== '' ? Number(amt) : 0;
+  body.isDefault = formIsDefault.value;
+  return body;
 }
 
 async function submitModal() {
@@ -114,35 +117,16 @@ async function submitModal() {
     return;
   }
 
-  let cabinetTypeId: number | null = null;
-  if (editing.value) {
-    cabinetTypeId = extractCabinetTypeId(editing.value);
-  } else {
-    cabinetTypeId = presetCabinetTypeId.value;
-  }
-  if (cabinetTypeId == null || !Number.isFinite(cabinetTypeId) || cabinetTypeId <= 0) {
-    formError.value =
-      'Missing cabinet type. Close this dialog, open a cabinet type, and use “Add depth option” there.';
-    return;
-  }
-
   formError.value = '';
-  const body: Record<string, unknown> = { name, depth };
-
-  body.surchargeCode = formSurchargeCode.value.trim() || null;
-
-  const amt = formSurchargeAmount.value.trim();
-  body.surchargeAmount = amt !== '' ? Number(amt) : 0;
-
-  body.isDefault = formIsDefault.value;
-
-  body.cabinetTypeId = cabinetTypeId;
 
   formSaving.value = true;
   try {
     if (editing.value) {
-      await updateDepthOption(editing.value.documentId, body);
+      await updateDepthOption(editing.value.documentId, buildBodyScalars());
     } else {
+      const body = buildBodyScalars();
+      const doc = presetCabinetTypeDocumentId.value?.trim();
+      if (doc) body.connectCabinetTypeDocumentIds = [doc];
       await createDepthOption(body);
     }
     const resetPage = editing.value === null;
@@ -195,7 +179,7 @@ defineExpose({ openCreate, openCreateForCabinetType, openEdit });
   cursor: pointer;
 }
 
-.do-modal__checkbox-label input[type="checkbox"] {
+.do-modal__checkbox-label input[type='checkbox'] {
   width: 1rem;
   height: 1rem;
 }

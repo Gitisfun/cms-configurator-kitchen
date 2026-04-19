@@ -3,7 +3,7 @@
     <form id="cabinet-series-modal-form" @submit.prevent="submitModal">
       <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
       <BaseInputField v-model="formCode" label="Code" required-mark type="text" name="code" autocomplete="off" maxlength="255" required :disabled="formSaving" spaced />
-      <BaseInputField v-model="formCarcaseHeight" label="Carcase height (mm)" required-mark type="number" name="carcaseHeight" min="1" step="1" required :disabled="formSaving" spaced />
+      <BaseInputField v-model="formCarcaseHeight" label="Carcase height (mm)" type="number" name="carcaseHeight" min="1" step="1" :disabled="formSaving" spaced />
       <BaseInputField v-model="formDefaultCarcaseDepth" label="Default carcase depth (mm)" type="number" name="defaultCarcaseDepth" min="1" step="1" :disabled="formSaving" spaced />
 
       <div class="cs-modal__field cs-modal__field--spaced">
@@ -55,7 +55,7 @@ const editing = ref<CabinetSeriesModalRow | null>(null);
 const formName = ref('');
 const formCode = ref('');
 const formCarcaseHeight = ref('');
-const formDefaultCarcaseDepth = ref('560');
+const formDefaultCarcaseDepth = ref('');
 const formProductLine = ref('');
 const formSubcategoryIdRaw = ref('');
 const formError = ref('');
@@ -85,7 +85,7 @@ function openCreate() {
   formName.value = '';
   formCode.value = '';
   formCarcaseHeight.value = '';
-  formDefaultCarcaseDepth.value = '560';
+  formDefaultCarcaseDepth.value = '';
   formProductLine.value = '';
   formSubcategoryIdRaw.value = '';
   formError.value = '';
@@ -98,8 +98,8 @@ function openEdit(row: CabinetSeriesModalRow) {
   editing.value = row;
   formName.value = row.name;
   formCode.value = row.code;
-  formCarcaseHeight.value = String(row.carcaseHeight);
-  formDefaultCarcaseDepth.value = String(row.defaultCarcaseDepth ?? 560);
+  formCarcaseHeight.value = row.carcaseHeight != null ? String(row.carcaseHeight) : '';
+  formDefaultCarcaseDepth.value = row.defaultCarcaseDepth != null ? String(row.defaultCarcaseDepth) : '';
   formProductLine.value = row.productLine ?? '';
   const scId = extractRelationNumericId(row.subcategory);
   formSubcategoryIdRaw.value = scId != null ? String(scId) : '';
@@ -120,21 +120,34 @@ async function submitModal() {
   if (!name) { formError.value = 'Please enter a name.'; return; }
   const code = formCode.value.trim();
   if (!code) { formError.value = 'Please enter a code.'; return; }
-  const carcaseHeight = Number(formCarcaseHeight.value);
-  if (!Number.isFinite(carcaseHeight) || carcaseHeight < 1) { formError.value = 'Please enter a valid carcase height.'; return; }
-
   formError.value = '';
   const body: Record<string, unknown> = {
     name,
     code,
-    carcaseHeight,
   };
+
+  const chRaw = formCarcaseHeight.value.trim();
+  if (chRaw !== '') {
+    const carcaseHeight = Number(chRaw);
+    if (!Number.isFinite(carcaseHeight) || carcaseHeight < 1) {
+      formError.value = 'Please enter a valid carcase height or leave it empty.';
+      return;
+    }
+    body.carcaseHeight = carcaseHeight;
+  } else {
+    body.carcaseHeight = null;
+  }
 
   const depth = formDefaultCarcaseDepth.value.trim();
   if (depth !== '') {
     const n = Number(depth);
-    if (!Number.isFinite(n)) { formError.value = 'Invalid default depth.'; return; }
+    if (!Number.isFinite(n) || n < 1) {
+      formError.value = 'Please enter a valid default depth or leave it empty.';
+      return;
+    }
     body.defaultCarcaseDepth = n;
+  } else {
+    body.defaultCarcaseDepth = null;
   }
 
   body.productLine = formProductLine.value || null;

@@ -39,14 +39,44 @@
             Save this cabinet type with the button at the bottom, then edit the type again — the Add button will work once the type exists.
           </p>
           <template v-if="editing">
-            <ul v-if="depthOptionsListed.length > 0" class="ct-modal__depth-list">
-              <li v-for="opt in depthOptionsListed" :key="opt.documentId" class="ct-modal__depth-row">
-                <span>{{ opt.name }} ({{ opt.depth }} mm)</span>
-                <BaseButton type="button" variant="text" size="sm" :disabled="formSaving" @click="openEditDepthOption(opt)">
-                  Edit
-                </BaseButton>
-              </li>
-            </ul>
+            <div v-if="depthOptionsListed.length > 0" class="ct-modal__depth-matrix-wrap">
+              <table class="ct-modal__depth-matrix">
+                <thead>
+                  <tr>
+                    <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-name">Name</th>
+                    <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-mm">
+                      Width <span class="ct-modal__depth-matrix__th-sub">(mm)</span>
+                    </th>
+                    <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-act" aria-label="Edit"></th>
+                    <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-act" aria-label="Remove"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="opt in depthOptionsListed" :key="opt.documentId" class="ct-modal__depth-matrix__row">
+                    <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-name">{{ opt.name }}</td>
+                    <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-mm">{{ opt.depth }} mm</td>
+                    <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-act">
+                      <BaseButton type="button" variant="text" size="sm" :disabled="formSaving || deletingDepthDocumentId !== null" @click="openEditDepthOption(opt)">
+                        Edit
+                      </BaseButton>
+                    </td>
+                    <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-act">
+                      <BaseButton
+                        type="button"
+                        variant="text"
+                        danger
+                        size="sm"
+                        :disabled="formSaving || deletingDepthDocumentId !== null"
+                        :loading="deletingDepthDocumentId === opt.documentId"
+                        @click="confirmUnlinkDepthOption(opt)"
+                      >
+                        Unlink
+                      </BaseButton>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <p v-else class="ct-modal__hint">No depth options for this type yet.</p>
           </template>
           <div class="ct-modal__depth-actions">
@@ -54,12 +84,12 @@
               type="button"
               variant="outlined"
               size="sm"
-              :disabled="formSaving || !editing"
+              :disabled="formSaving || !editing || deletingDepthDocumentId !== null"
               :title="!editing ? 'Save this cabinet type first, then edit it again to add depths' : undefined"
               @click="openAddDepthOption"
             >
               <Icon name="lucide:plus" class="base-btn__icon" />
-              Add depth option
+              Link depth option
             </BaseButton>
           </div>
         </div>
@@ -115,6 +145,7 @@
     </BaseModal>
 
     <ModalDepthOption ref="depthOptionModalRef" @saved="onDepthOptionSaved" />
+    <ModalDepthOptionLink ref="depthOptionLinkRef" @linked="onDepthOptionLinked" />
     <ModalMedia v-model="mediaPickerOpen" @select="onMediaPickerSelect" />
   </div>
 </template>
@@ -125,7 +156,7 @@ import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
 import { extractPlinthImage } from '../../utils/plinthImage';
 import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import { createCabinetType, getCabinetTypeById, updateCabinetType, type CabinetType } from '../../services/cabinet-types';
-import { type DepthOption } from '../../services/depth-options';
+import { updateDepthOption, type DepthOption } from '../../services/depth-options';
 import { strapiRelationList } from '../../utils/strapiRelationList';
 import { extractRelationNumericId } from '../../utils/strapiRelationMeta';
 import { getAllSubcategories, type Subcategory } from '../../services/subcategories';
@@ -170,9 +201,15 @@ const seriesOptions = ref<CabinetSeries[]>([]);
 const seriesLoading = ref(false);
 
 const depthOptionModalRef = ref<{
-  openCreateForCabinetType: (cabinetTypeNumericId: number) => void;
-  openEdit: (row: DepthOption) => void;
+  openEdit: (row: DepthOption, fallbackCabinetTypeNumericId?: number | null) => void;
 } | null>(null);
+
+const depthOptionLinkRef = ref<{
+  openPicker: (cabinetTypeDocumentId: string, linkedDocumentIds: string[], label?: string) => void;
+} | null>(null);
+
+/** Set while a depth row delete is in flight (disables sibling actions). */
+const deletingDepthDocumentId = ref<string | null>(null);
 
 const depthOptionsListed = computed(() => {
   if (!editing.value) return [];
@@ -212,14 +249,18 @@ function resetImageFormState() {
 
 function openAddDepthOption() {
   if (!editing.value) return;
-  depthOptionModalRef.value?.openCreateForCabinetType(editing.value.id);
+  depthOptionLinkRef.value?.openPicker(
+    editing.value.documentId,
+    depthOptionsListed.value.map((d) => d.documentId),
+    editing.value.name,
+  );
 }
 
 function openEditDepthOption(opt: DepthOption) {
   depthOptionModalRef.value?.openEdit(opt);
 }
 
-async function onDepthOptionSaved(_payload: { resetPage: boolean }) {
+async function refreshEditingCabinetTypeFromServer() {
   emit('saved', { resetPage: false });
   if (!editing.value) return;
   try {
@@ -230,6 +271,30 @@ async function onDepthOptionSaved(_payload: { resetPage: boolean }) {
     }
   } catch {
     /* keep previous editing row */
+  }
+}
+
+async function onDepthOptionSaved(_payload: { resetPage: boolean }) {
+  await refreshEditingCabinetTypeFromServer();
+}
+
+async function onDepthOptionLinked() {
+  await refreshEditingCabinetTypeFromServer();
+}
+
+async function confirmUnlinkDepthOption(opt: DepthOption) {
+  if (!window.confirm(`Unlink depth option "${opt.name}" from this cabinet type? The row stays in the library.`)) return;
+  if (!editing.value) return;
+  deletingDepthDocumentId.value = opt.documentId;
+  try {
+    await updateDepthOption(opt.documentId, {
+      disconnectCabinetTypeDocumentIds: [editing.value.documentId],
+    });
+    await refreshEditingCabinetTypeFromServer();
+  } catch (e: unknown) {
+    window.alert(getFetchErrorMessage(e, 'Failed to unlink depth option.'));
+  } finally {
+    deletingDepthDocumentId.value = null;
   }
 }
 
@@ -355,6 +420,12 @@ async function submitModal() {
   if (!editing.value) {
     const rawCs = formCabinetSeriesIdRaw.value.trim();
     body.cabinetSeriesId = rawCs ? Number(rawCs) : null;
+  } else {
+    /** Re-send series id so Strapi does not drop the many-to-one link on update (catalog relies on it). */
+    const seriesId = extractRelationNumericId(editing.value.cabinetSeries);
+    if (seriesId != null) {
+      body.cabinetSeriesId = seriesId;
+    }
   }
 
   if (formImageTouched.value) body.imageId = formImageId.value;
@@ -504,22 +575,108 @@ defineExpose({ openCreate, openCreateForSeries, openEdit });
   height: 1rem;
 }
 
-.ct-modal__depth-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.375rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+/* Catalog-style compact matrix (aligned with product catalog tables) */
+.ct-modal__depth-matrix-wrap {
+  margin-top: 0.375rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-card);
 }
 
-.ct-modal__depth-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-size: var(--paragraph-size-medium);
+.ct-modal__depth-matrix {
+  width: 100%;
+  min-width: min(100%, 22rem);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.75rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'tnum' 1;
+}
+
+.ct-modal__depth-matrix__th,
+.ct-modal__depth-matrix__td {
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  padding: 0.35rem 0.45rem;
+  vertical-align: middle;
+  background: var(--color-surface-card);
+}
+
+.ct-modal__depth-matrix__th:last-child,
+.ct-modal__depth-matrix__td:last-child {
+  border-right: none;
+}
+
+.ct-modal__depth-matrix tbody tr:last-child .ct-modal__depth-matrix__td {
+  border-bottom: none;
+}
+
+.ct-modal__depth-matrix__row:hover .ct-modal__depth-matrix__td {
+  background: var(--color-surface-hover);
+}
+
+.ct-modal__depth-matrix thead .ct-modal__depth-matrix__th {
+  background: var(--color-surface-card);
+}
+
+.ct-modal__depth-matrix__th {
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ct-modal__depth-matrix__th-sub {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-muted);
+  margin-top: 0.1rem;
+}
+
+.ct-modal__depth-matrix__th-name {
+  width: 62%;
+  min-width: 10rem;
+}
+
+.ct-modal__depth-matrix__th-mm {
+  width: 4.75rem;
+  max-width: 5.5rem;
+  text-align: right;
+}
+
+.ct-modal__depth-matrix__th-act {
+  width: 1%;
+  text-align: right;
+  font-size: 0.7rem;
+}
+
+.ct-modal__depth-matrix__td-name {
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: var(--paragraph-size-small);
+  word-break: break-word;
+}
+
+.ct-modal__depth-matrix__td-mm {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  width: 4.75rem;
+  max-width: 5.5rem;
+}
+
+.ct-modal__depth-matrix__td-act {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ct-modal__depth-matrix__td-act :deep(.base-btn) {
+  font-size: 0.78rem;
 }
 
 .ct-modal__depth-actions {

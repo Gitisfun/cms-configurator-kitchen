@@ -12,8 +12,8 @@ export interface CabinetSeries {
   documentId: string;
   name: string;
   code: string;
-  carcaseHeight: number;
-  defaultCarcaseDepth: number;
+  carcaseHeight: number | null;
+  defaultCarcaseDepth: number | null;
   productLine: 'standard' | 'cLine' | 'xLine' | null;
   subcategory?: CabinetSeriesSubcategoryField;
   createdAt: string;

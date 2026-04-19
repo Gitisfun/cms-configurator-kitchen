@@ -1,11 +1,50 @@
 const MAX_NAME_LEN = 255;
 
+function parseDocumentIdArray(key: string, b: Record<string, unknown>): string[] {
+  const v = b[key];
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v)) {
+    throw createError({ statusCode: 400, statusMessage: `Invalid ${key}` });
+  }
+  const out: string[] = [];
+  for (const item of v) {
+    if (typeof item === 'string' && item.trim() !== '') out.push(item.trim());
+  }
+  return out;
+}
+
+function cabinetTypesConnectDisconnect(connectIds: string[], disconnectIds: string[]): Record<string, unknown> | null {
+  if (!connectIds.length && !disconnectIds.length) return null;
+  const ct: Record<string, unknown> = {};
+  if (connectIds.length) ct.connect = connectIds;
+  if (disconnectIds.length) ct.disconnect = disconnectIds;
+  return { cabinetTypes: ct };
+}
+
 export function buildDepthOptionData(body: unknown): Record<string, unknown> {
   if (!body || typeof body !== 'object') {
     throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
   }
 
   const b = body as Record<string, unknown>;
+  const connectIds = parseDocumentIdArray('connectCabinetTypeDocumentIds', b);
+  const disconnectIds = parseDocumentIdArray('disconnectCabinetTypeDocumentIds', b);
+
+  const hasScalars =
+    'name' in b ||
+    'depth' in b ||
+    'surchargeCode' in b ||
+    'surchargeAmount' in b ||
+    'isDefault' in b;
+
+  if (!hasScalars) {
+    const rel = cabinetTypesConnectDisconnect(connectIds, disconnectIds);
+    if (!rel) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
+    }
+    return rel;
+  }
+
   const name = typeof b.name === 'string' ? b.name.trim() : '';
   if (!name) {
     throw createError({ statusCode: 400, statusMessage: 'Name is required' });
@@ -74,22 +113,8 @@ export function buildDepthOptionData(body: unknown): Record<string, unknown> {
     }
   }
 
-  if ('cabinetTypeId' in b) {
-    const v = b.cabinetTypeId;
-    if (v === null) {
-      data.cabinetType = null;
-    } else if (typeof v === 'number' && Number.isFinite(v)) {
-      data.cabinetType = v;
-    } else if (typeof v === 'string' && v.trim() !== '') {
-      const n = Number(v.trim());
-      if (!Number.isFinite(n)) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid cabinetTypeId' });
-      }
-      data.cabinetType = n;
-    } else {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid cabinetTypeId' });
-    }
-  }
+  const rel = cabinetTypesConnectDisconnect(connectIds, disconnectIds);
+  if (rel) Object.assign(data, rel);
 
   return data;
 }

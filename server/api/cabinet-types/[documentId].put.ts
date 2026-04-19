@@ -1,4 +1,5 @@
 import { buildCabinetTypeData } from '../../utils/cabinetTypePayload';
+import { mergePreservedCabinetTypeRelations } from '../../utils/cabinetTypePreserveRelations';
 
 function strapiErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'data' in err) {
@@ -26,6 +27,20 @@ export default defineEventHandler(async (event) => {
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'statusCode' in e) throw e;
     throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
+  }
+
+  try {
+    const existingRes = await $fetch<{ data?: Record<string, unknown> }>(
+      `${config.strapiUrl}/api/cabinet-types/${encodeURIComponent(documentId)}?populate[variants]=true&populate[depthOptions]=true&populate[typeSurcharges]=true&populate[accessories]=true`,
+      {
+        headers: {
+          Authorization: `Bearer ${config.strapiToken}`,
+        },
+      },
+    );
+    mergePreservedCabinetTypeRelations(data, existingRes.data);
+  } catch {
+    /* If prefetch fails, still attempt update with scalar fields only. */
   }
 
   try {

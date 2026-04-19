@@ -60,8 +60,8 @@
             </div>
           </td>
           <td>{{ row.code }}</td>
-          <td>{{ row.carcaseHeight }} mm</td>
-          <td>{{ row.defaultCarcaseDepth }} mm</td>
+          <td>{{ row.carcaseHeight != null ? `${row.carcaseHeight} mm` : '—' }}</td>
+          <td>{{ row.defaultCarcaseDepth != null ? `${row.defaultCarcaseDepth} mm` : '—' }}</td>
           <td>{{ productLineLabel(row.productLine) }}</td>
           <td>{{ subcategoryLabel(row) }}</td>
           <td>{{ formatDate(row.publishedAt) }}</td>

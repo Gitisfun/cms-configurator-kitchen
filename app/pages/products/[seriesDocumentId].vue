@@ -32,9 +32,9 @@
             <p class="catalog-page__meta">
               <span>Code <strong>{{ series.code }}</strong></span>
               <span class="catalog-page__meta-sep">·</span>
-              <span>Carcase height <strong>{{ series.carcaseHeight }} mm</strong></span>
+              <span>Carcase height <strong>{{ series.carcaseHeight != null ? `${series.carcaseHeight} mm` : '—' }}</strong></span>
               <span class="catalog-page__meta-sep">·</span>
-              <span>Default depth <strong>{{ series.defaultCarcaseDepth }} mm</strong></span>
+              <span>Default depth <strong>{{ series.defaultCarcaseDepth != null ? `${series.defaultCarcaseDepth} mm` : '—' }}</strong></span>
               <template v-if="series.productLine">
                 <span class="catalog-page__meta-sep">·</span>
                 <span>{{ productLineLabel(series.productLine) }}</span>
@@ -104,16 +104,36 @@
               to see the price grid (groups 0, 1, 2&hellip;) for each variant.
             </div>
             <div v-else class="catalog-matrix-wrap">
-              <table class="catalog-matrix">
+              <table
+                class="catalog-matrix"
+                :class="
+                  catalogSeriesLocksVariantHeight
+                    ? 'catalog-matrix--variant-height-hidden'
+                    : 'catalog-matrix--variant-height-visible'
+                "
+              >
                 <thead>
                   <tr>
-                    <th rowspan="2" scope="col" class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--width">
+                    <th
+                      v-if="!catalogSeriesLocksVariantHeight"
+                      rowspan="2"
+                      scope="col"
+                      class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--height catalog-matrix__sticky-stack-h"
+                    >
+                      Height <span class="catalog-matrix__th-sub">(mm)</span>
+                    </th>
+                    <th
+                      rowspan="2"
+                      scope="col"
+                      class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--width"
+                      :class="catalogSeriesLocksVariantHeight ? 'catalog-matrix__sticky-stack-w-only' : 'catalog-matrix__sticky-stack-w'"
+                    >
                       Width <span class="catalog-matrix__th-sub">(mm)</span>
                     </th>
-                    <th rowspan="2" scope="col" class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--order">
+                    <th rowspan="2" scope="col" class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--order catalog-matrix__sticky-stack-o">
                       Order no.
                     </th>
-                    <th rowspan="2" scope="col" class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--lr">
+                    <th rowspan="2" scope="col" class="catalog-matrix__th catalog-matrix__th--sticky catalog-matrix__th--lr catalog-matrix__sticky-stack-lr">
                       L/R
                     </th>
                     <th
@@ -141,13 +161,23 @@
                 </thead>
                 <tbody>
                   <tr v-for="variant in variantsOf(cabinetType)" :key="variant.documentId" class="catalog-matrix__row">
-                    <td class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--width">
-                      {{ widthCatalogCell(variant) }}
+                    <td
+                      v-if="!catalogSeriesLocksVariantHeight"
+                      class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--height catalog-matrix__sticky-stack-h"
+                    >
+                      <template v-if="variant.height != null">{{ variant.height }}</template>
+                      <span v-else class="catalog-matrix__height-placeholder">—</span>
                     </td>
-                    <td class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--order catalog-matrix__td-mono">
+                    <td
+                      class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--width"
+                      :class="catalogSeriesLocksVariantHeight ? 'catalog-matrix__sticky-stack-w-only' : 'catalog-matrix__sticky-stack-w'"
+                    >
+                      {{ variantWidthCell(variant) }}
+                    </td>
+                    <td class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--order catalog-matrix__td-mono catalog-matrix__sticky-stack-o">
                       {{ variant.orderNumber }}
                     </td>
-                    <td class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--lr">
+                    <td class="catalog-matrix__td catalog-matrix__td--sticky catalog-matrix__td--lr catalog-matrix__sticky-stack-lr">
                       {{ lrCellLabel(cabinetType) }}
                     </td>
                     <td
@@ -178,13 +208,63 @@
                     </td>
                   </tr>
                   <tr v-if="variantsOf(cabinetType).length === 0">
-                    <td :colspan="3 + priceClasses.length + 1" class="catalog-matrix__empty-row">
+                    <td
+                      :colspan="(catalogSeriesLocksVariantHeight ? 3 : 4) + priceClasses.length + 1"
+                      class="catalog-matrix__empty-row"
+                    >
                       No variants yet.
                       <button type="button" class="catalog-matrix__inline-link" @click="openAddVariant(cabinetType.id)">Add variant</button>
                     </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div class="catalog-depth-section">
+              <div class="catalog-depth-section__head">
+                <h3 class="catalog-depth-section__title">Depth options</h3>
+                <BaseButton type="button" variant="text" size="sm" @click="openLinkDepthOptions(cabinetType)">
+                  <Icon name="lucide:plus" class="base-btn__icon" />
+                  Link depth option
+                </BaseButton>
+              </div>
+              <div v-if="depthOptionsListed(cabinetType).length > 0" class="catalog-matrix-wrap">
+                <table class="catalog-depth-matrix">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-name">Name</th>
+                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-mm">
+                        Depth <span class="catalog-matrix__th-sub">(mm)</span>
+                      </th>
+                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-edit">Edit</th>
+                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-remove">Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="opt in depthOptionsListed(cabinetType)" :key="opt.documentId" class="catalog-depth-matrix__row">
+                      <td class="catalog-depth-matrix__td catalog-depth-matrix__td-name">{{ opt.name }}</td>
+                      <td class="catalog-depth-matrix__td catalog-depth-matrix__td-mm">{{ opt.depth }}</td>
+                      <td class="catalog-depth-matrix__td catalog-depth-matrix__td-edit">
+                        <BaseButton type="button" variant="text" size="sm" @click="openEditDepthOption(opt)"> Edit </BaseButton>
+                      </td>
+                      <td class="catalog-depth-matrix__td catalog-depth-matrix__td-remove">
+                        <BaseButton
+                          type="button"
+                          variant="text"
+                          danger
+                          size="sm"
+                          :disabled="depthUnlinkingDocumentId !== null"
+                          :loading="depthUnlinkingDocumentId === opt.documentId"
+                          @click="confirmUnlinkDepthOption(cabinetType, opt)"
+                        >
+                          Remove
+                        </BaseButton>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p v-else class="catalog-depth-section__empty">No depth options linked yet. Use Link depth option to attach rows from the library.</p>
             </div>
           </div>
         </div>
@@ -196,11 +276,14 @@
     <ModalCabinetType ref="typeModalRef" @saved="onTypeSaved" />
     <ModalCabinetVariant ref="variantModalRef" @saved="onVariantSaved" />
     <ModalCabinetPrice ref="priceModalRef" @saved="onPriceSaved" />
+    <ModalDepthOption ref="depthOptionModalRef" @saved="onDepthOptionSaved" />
+    <ModalDepthOptionLink ref="depthOptionLinkRef" @linked="onDepthOptionLinked" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { extractPlinthImage } from '../../utils/plinthImage';
+import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
 import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import { strapiRelationList } from '../../utils/strapiRelationList';
 import { extractRelationDocumentId, extractRelationNumericId } from '../../utils/strapiRelationMeta';
@@ -213,6 +296,9 @@ import { fetchCabinetPricesForVariantIds } from '../../services/cabinet-prices';
 import { getPriceClassesSortedByLevel, type PriceClass } from '../../services/price-classes';
 import type { CabinetVariant } from '../../models/cabinet-variant';
 import type { CabinetPrice } from '../../models/cabinet-price';
+import type { DepthOption } from '../../models/depth-option';
+import { updateDepthOption } from '../../services/depth-options';
+import { seriesLocksVariantHeight } from '../../utils/seriesVariantHeight';
 
 type CatalogPayload = {
   series: CabinetSeries;
@@ -269,6 +355,11 @@ const series = computed(() => catalogData.value?.series ?? null);
 const types = computed(() => catalogData.value?.types ?? []);
 const priceClasses = computed(() => catalogData.value?.priceClasses ?? []);
 
+/** Fixed series carcase height → no per-variant height in the grid or modal. */
+const catalogSeriesLocksVariantHeight = computed(
+  () => series.value != null && seriesLocksVariantHeight(series.value.carcaseHeight),
+);
+
 const subcategoryLabel = computed(() => {
   const s = series.value;
   if (!s?.subcategory) return '';
@@ -324,14 +415,16 @@ function variantsOf(cabinetType: CabinetType): CabinetVariant[] {
   });
 }
 
-/** Width column (header shows “mm”); optional height when set. */
-function widthCatalogCell(v: CabinetVariant): string {
-  const base =
-    v.isVariableWidth && v.minWidth != null && v.maxWidth != null
-      ? `${v.minWidth}–${v.maxWidth}`
-      : String(v.width);
-  if (v.height != null) return `${base} · ${v.height}`;
-  return base;
+function depthOptionsListed(cabinetType: CabinetType): DepthOption[] {
+  const list = strapiRelationList<DepthOption>(cabinetType.depthOptions);
+  return [...list].sort((a, b) => a.depth - b.depth);
+}
+
+/** Width only (variable range or fixed mm). */
+function variantWidthCell(v: CabinetVariant): string {
+  return v.isVariableWidth && v.minWidth != null && v.maxWidth != null
+    ? `${v.minWidth}–${v.maxWidth}`
+    : String(v.width);
 }
 
 function lrCellLabel(ct: CabinetType): string {
@@ -378,13 +471,18 @@ const typeModalRef = ref<{
   openEdit: (row: CabinetType) => void;
 } | null>(null);
 const variantModalRef = ref<{
-  openCreateForType: (typeNumericId: number) => void;
-  openEdit: (row: CabinetVariant) => void;
+  openCreateForType: (typeNumericId: number, options?: { lockVariantHeight?: boolean }) => void;
+  openEdit: (row: CabinetVariant, options?: { lockVariantHeight?: boolean }) => void;
 } | null>(null);
 const priceModalRef = ref<{
   openCreateForVariantAndPriceClass: (v: CabinetVariant, pc: PriceClass) => void;
   openEdit: (row: CabinetPrice) => void;
 } | null>(null);
+const depthOptionModalRef = ref<{ openEdit: (row: DepthOption) => void } | null>(null);
+const depthOptionLinkRef = ref<{
+  openPicker: (cabinetTypeDocumentId: string, linkedDocumentIds: string[], label?: string) => void;
+} | null>(null);
+const depthUnlinkingDocumentId = ref<string | null>(null);
 
 function openEditSeries() {
   const s = series.value;
@@ -401,11 +499,15 @@ function openEditType(row: CabinetType) {
 }
 
 function openAddVariant(typeNumericId: number) {
-  variantModalRef.value?.openCreateForType(typeNumericId);
+  variantModalRef.value?.openCreateForType(typeNumericId, {
+    lockVariantHeight: catalogSeriesLocksVariantHeight.value,
+  });
 }
 
 function openEditVariant(row: CabinetVariant) {
-  variantModalRef.value?.openEdit(row);
+  variantModalRef.value?.openEdit(row, {
+    lockVariantHeight: catalogSeriesLocksVariantHeight.value,
+  });
 }
 
 function openAddPrice(variant: CabinetVariant, pc: PriceClass) {
@@ -414,6 +516,33 @@ function openAddPrice(variant: CabinetVariant, pc: PriceClass) {
 
 function openEditPrice(row: CabinetPrice) {
   priceModalRef.value?.openEdit(row);
+}
+
+function openEditDepthOption(opt: DepthOption) {
+  depthOptionModalRef.value?.openEdit(opt);
+}
+
+function openLinkDepthOptions(cabinetType: CabinetType) {
+  depthOptionLinkRef.value?.openPicker(
+    cabinetType.documentId,
+    depthOptionsListed(cabinetType).map((d) => d.documentId),
+    cabinetType.name,
+  );
+}
+
+async function confirmUnlinkDepthOption(cabinetType: CabinetType, opt: DepthOption) {
+  if (!window.confirm(`Remove depth option "${opt.name}" from this cabinet type? The row stays in the library.`)) return;
+  depthUnlinkingDocumentId.value = opt.documentId;
+  try {
+    await updateDepthOption(opt.documentId, {
+      disconnectCabinetTypeDocumentIds: [cabinetType.documentId],
+    });
+    await refresh();
+  } catch (e: unknown) {
+    window.alert(getFetchErrorMessage(e, 'Could not remove depth option.'));
+  } finally {
+    depthUnlinkingDocumentId.value = null;
+  }
 }
 
 async function onSeriesSaved() {
@@ -429,6 +558,14 @@ async function onVariantSaved() {
 }
 
 async function onPriceSaved() {
+  await refresh();
+}
+
+async function onDepthOptionSaved() {
+  await refresh();
+}
+
+async function onDepthOptionLinked() {
   await refresh();
 }
 
@@ -662,6 +799,7 @@ useHead({
 
 .catalog-matrix {
   --cat-col-w: 4.5rem;
+  --cat-col-h: 4.5rem;
   --cat-col-o: 8.25rem;
   --cat-col-lr: 2.35rem;
   --cat-stripe: rgba(15, 23, 42, 0.06);
@@ -712,6 +850,14 @@ useHead({
   width: var(--cat-col-w);
   min-width: var(--cat-col-w);
   max-width: var(--cat-col-w);
+  line-height: 1.2;
+}
+
+.catalog-matrix__th--height {
+  text-align: right;
+  width: var(--cat-col-h);
+  min-width: var(--cat-col-h);
+  max-width: var(--cat-col-h);
   line-height: 1.2;
 }
 
@@ -787,6 +933,19 @@ useHead({
   min-width: var(--cat-col-w);
 }
 
+.catalog-matrix__td--height {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  width: var(--cat-col-h);
+  min-width: var(--cat-col-h);
+}
+
+.catalog-matrix__height-placeholder {
+  color: var(--color-text-muted);
+}
+
 .catalog-matrix__td--order {
   font-family: ui-monospace, 'Cascadia Code', monospace;
   font-size: 0.72rem;
@@ -828,24 +987,51 @@ useHead({
   background: var(--color-surface-card);
 }
 
-.catalog-matrix__th--sticky.catalog-matrix__th--width,
-.catalog-matrix__td--sticky.catalog-matrix__td--width {
+/* Height first, then width — scroll with horizontal prices */
+.catalog-matrix--variant-height-visible .catalog-matrix__sticky-stack-h {
   position: sticky;
   left: 0;
   z-index: 3;
   box-shadow: 1px 0 0 var(--color-border);
 }
 
-.catalog-matrix__th--sticky.catalog-matrix__th--order,
-.catalog-matrix__td--sticky.catalog-matrix__td--order {
+.catalog-matrix--variant-height-visible .catalog-matrix__sticky-stack-w {
+  position: sticky;
+  left: var(--cat-col-h);
+  z-index: 3;
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+.catalog-matrix--variant-height-visible .catalog-matrix__sticky-stack-o {
+  position: sticky;
+  left: calc(var(--cat-col-h) + var(--cat-col-w));
+  z-index: 3;
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+.catalog-matrix--variant-height-visible .catalog-matrix__sticky-stack-lr {
+  position: sticky;
+  left: calc(var(--cat-col-h) + var(--cat-col-w) + var(--cat-col-o));
+  z-index: 3;
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+/* Series fixes carcase height — only width + order + L/R stick */
+.catalog-matrix--variant-height-hidden .catalog-matrix__sticky-stack-w-only {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+.catalog-matrix--variant-height-hidden .catalog-matrix__sticky-stack-o {
   position: sticky;
   left: var(--cat-col-w);
   z-index: 3;
   box-shadow: 1px 0 0 var(--color-border);
 }
 
-.catalog-matrix__th--sticky.catalog-matrix__th--lr,
-.catalog-matrix__td--sticky.catalog-matrix__td--lr {
+.catalog-matrix--variant-height-hidden .catalog-matrix__sticky-stack-lr {
   position: sticky;
   left: calc(var(--cat-col-w) + var(--cat-col-o));
   z-index: 3;
@@ -904,6 +1090,123 @@ useHead({
   color: var(--color-brand);
   cursor: pointer;
   text-decoration: underline;
+}
+
+.catalog-depth-section {
+  margin-top: 1rem;
+}
+
+.catalog-depth-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.catalog-depth-section__title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted-strong);
+  letter-spacing: 0.02em;
+}
+
+.catalog-depth-section__empty {
+  margin: 0;
+  padding: 0.5rem 0 0;
+  font-size: var(--paragraph-size-small);
+  color: var(--color-text-muted);
+}
+
+.catalog-depth-matrix {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.75rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'tnum' 1;
+}
+
+.catalog-depth-matrix__th,
+.catalog-depth-matrix__td {
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  padding: 0.35rem 0.45rem;
+  vertical-align: middle;
+  background: var(--color-surface-card);
+}
+
+.catalog-depth-matrix__th:last-child,
+.catalog-depth-matrix__td:last-child {
+  border-right: none;
+}
+
+.catalog-depth-matrix tbody tr:last-child .catalog-depth-matrix__td {
+  border-bottom: none;
+}
+
+.catalog-depth-matrix__row:hover .catalog-depth-matrix__td {
+  background: var(--color-surface-hover);
+}
+
+.catalog-depth-matrix__th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.catalog-depth-matrix__th-name {
+  width: auto;
+  min-width: 6rem;
+}
+
+.catalog-depth-matrix__th-mm {
+  width: 5.25rem;
+  text-align: right;
+}
+
+.catalog-depth-matrix__th-edit {
+  width: 3.75rem;
+  min-width: 3.75rem;
+  max-width: 3.75rem;
+  text-align: right;
+  font-size: 0.7rem;
+}
+
+.catalog-depth-matrix__th-remove {
+  width: 4.25rem;
+  min-width: 4.25rem;
+  max-width: 4.25rem;
+  text-align: right;
+  font-size: 0.7rem;
+}
+
+.catalog-depth-matrix__td-name {
+  color: var(--color-text-primary);
+  font-size: var(--paragraph-size-small);
+  word-break: break-word;
+}
+
+.catalog-depth-matrix__td-mm {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.catalog-depth-matrix__td-edit,
+.catalog-depth-matrix__td-remove {
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.catalog-depth-matrix__td-edit :deep(.base-btn),
+.catalog-depth-matrix__td-remove :deep(.base-btn) {
+  font-size: 0.78rem;
 }
 
 </style>

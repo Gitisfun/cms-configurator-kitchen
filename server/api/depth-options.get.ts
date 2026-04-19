@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   if (!hasPopulate) {
-    sp.set('populate[cabinetType]', 'true');
+    sp.set('populate[cabinetTypes]', 'true');
   }
 
   const qs = sp.toString();

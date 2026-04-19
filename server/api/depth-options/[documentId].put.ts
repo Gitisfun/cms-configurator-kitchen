@@ -1,4 +1,5 @@
 import { buildDepthOptionData } from '../../utils/depthOptionPayload';
+import { mergePreservedDepthOptionRelations } from '../../utils/depthOptionPreserveRelations';
 
 function strapiErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'data' in err) {
@@ -26,6 +27,20 @@ export default defineEventHandler(async (event) => {
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'statusCode' in e) throw e;
     throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
+  }
+
+  try {
+    const existingRes = await $fetch<{ data?: Record<string, unknown> }>(
+      `${config.strapiUrl}/api/depth-options/${encodeURIComponent(documentId)}?populate[cabinetTypes]=true`,
+      {
+        headers: {
+          Authorization: `Bearer ${config.strapiToken}`,
+        },
+      },
+    );
+    mergePreservedDepthOptionRelations(data, existingRes.data);
+  } catch {
+    /* If prefetch fails, still attempt update with body only. */
   }
 
   try {

@@ -3,7 +3,17 @@
     <form id="cabinet-variant-modal-form" @submit.prevent="submitModal">
       <BaseInputField ref="orderNumberInputRef" v-model="formOrderNumber" label="Order number" required-mark type="text" name="orderNumber" autocomplete="off" maxlength="255" required :disabled="formSaving" />
       <BaseInputField v-model="formWidth" label="Width (mm)" required-mark type="number" name="width" min="1" step="1" required :disabled="formSaving" spaced />
-      <BaseInputField v-model="formHeight" label="Height (mm)" type="number" name="height" min="1" step="1" :disabled="formSaving" spaced />
+      <BaseInputField
+        v-if="!lockVariantHeight"
+        v-model="formHeight"
+        label="Height (mm)"
+        type="number"
+        name="height"
+        min="1"
+        step="1"
+        :disabled="formSaving"
+        spaced
+      />
 
       <div class="cv-modal__field cv-modal__field--spaced">
         <label class="cv-modal__checkbox-label">
@@ -34,6 +44,11 @@ import { createCabinetVariant, updateCabinetVariant, type CabinetVariant } from 
 
 export type CabinetVariantModalRow = CabinetVariant;
 
+export type CabinetVariantModalOpenOptions = {
+  /** When true, hide height field and persist height as null. */
+  lockVariantHeight?: boolean;
+};
+
 const emit = defineEmits<{
   saved: [payload: { resetPage: boolean }];
 }>();
@@ -53,6 +68,9 @@ const orderNumberInputRef = ref<{ focus: () => void } | null>(null);
 /** Set only when opening create via `openCreateForType` (catalog or admin page picker). */
 const createCabinetTypeNumericId = ref<number | null>(null);
 
+/** When true (e.g. cabinet series has a fixed carcase height), height is omitted and cleared on save. */
+const lockVariantHeight = ref(false);
+
 function resetFormFields() {
   formOrderNumber.value = '';
   formWidth.value = '';
@@ -64,20 +82,23 @@ function resetFormFields() {
 }
 
 /** Pre-select cabinet type (numeric Strapi id) when creating from the catalog or variants list. */
-function openCreateForType(cabinetTypeNumericId: number) {
+function openCreateForType(cabinetTypeNumericId: number, options?: CabinetVariantModalOpenOptions) {
   editing.value = null;
   createCabinetTypeNumericId.value = cabinetTypeNumericId;
+  lockVariantHeight.value = !!options?.lockVariantHeight;
   resetFormFields();
   modalOpen.value = true;
   nextTick(() => orderNumberInputRef.value?.focus());
 }
 
-function openEdit(row: CabinetVariantModalRow) {
+function openEdit(row: CabinetVariantModalRow, options?: CabinetVariantModalOpenOptions) {
   editing.value = row;
   createCabinetTypeNumericId.value = null;
+  lockVariantHeight.value = !!options?.lockVariantHeight;
   formOrderNumber.value = row.orderNumber;
   formWidth.value = String(row.width);
-  formHeight.value = row.height != null ? String(row.height) : '';
+  formHeight.value =
+    lockVariantHeight.value ? '' : row.height != null ? String(row.height) : '';
   formIsVariableWidth.value = row.isVariableWidth;
   formMinWidth.value = row.minWidth != null ? String(row.minWidth) : '';
   formMaxWidth.value = row.maxWidth != null ? String(row.maxWidth) : '';
@@ -89,6 +110,7 @@ function openEdit(row: CabinetVariantModalRow) {
 function closeModal() {
   if (formSaving.value) return;
   createCabinetTypeNumericId.value = null;
+  lockVariantHeight.value = false;
   modalOpen.value = false;
   editing.value = null;
 }
@@ -111,16 +133,20 @@ async function submitModal() {
     isVariableWidth: formIsVariableWidth.value,
   };
 
-  const heightRaw = String(formHeight.value ?? '').trim();
-  if (heightRaw) {
-    const h = Number(heightRaw);
-    if (!Number.isFinite(h) || h < 1) {
-      formError.value = 'Please enter a valid height or leave it empty.';
-      return;
-    }
-    body.height = h;
-  } else {
+  if (lockVariantHeight.value) {
     body.height = null;
+  } else {
+    const heightRaw = String(formHeight.value ?? '').trim();
+    if (heightRaw) {
+      const h = Number(heightRaw);
+      if (!Number.isFinite(h) || h < 1) {
+        formError.value = 'Please enter a valid height or leave it empty.';
+        return;
+      }
+      body.height = h;
+    } else {
+      body.height = null;
+    }
   }
 
   if (formIsVariableWidth.value) {

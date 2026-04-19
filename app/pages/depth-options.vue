@@ -44,7 +44,7 @@
             <th scope="col">Surcharge Code</th>
             <th scope="col">Surcharge Amount</th>
             <th scope="col">Default</th>
-            <th scope="col">Cabinet type</th>
+            <th scope="col">Cabinet types</th>
             <th scope="col">Published</th>
             <th scope="col">Updated</th>
             <th scope="col" class="base-table__th-actions">Actions</th>
@@ -101,6 +101,7 @@ import {
   type DepthOption,
   type DepthOptionsResponse,
 } from '../services/depth-options';
+import { formatDepthOptionCabinetTypesLabel } from '../utils/depthOptionCabinetTypes';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
@@ -122,11 +123,7 @@ function goToCabinetTypes() {
 }
 
 function typeLabel(row: DepthOption): string {
-  const ct = row.cabinetType;
-  if (!ct) return '—';
-  if (typeof ct === 'object' && 'name' in ct) return (ct as { name: string }).name;
-  if (typeof ct === 'object' && 'data' in ct && ct.data) return ct.data.name;
-  return '—';
+  return formatDepthOptionCabinetTypesLabel(row);
 }
 
 async function onSaved(payload: { resetPage: boolean }) {

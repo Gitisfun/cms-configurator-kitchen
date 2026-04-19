@@ -96,13 +96,21 @@ function onBackdropClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: rgba(27, 58, 92, 0.45);
   backdrop-filter: blur(2px);
 }
 
 .base-modal {
   width: 100%;
+  max-height: min(92vh, calc(100dvh - 2rem));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: var(--color-surface-card);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow-hover);
@@ -123,6 +131,7 @@ function onBackdropClick() {
 }
 
 .base-modal__header {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -172,6 +181,10 @@ function onBackdropClick() {
 }
 
 .base-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 1rem 1.25rem 1.25rem;
 }
 
@@ -187,6 +200,7 @@ function onBackdropClick() {
 }
 
 .base-modal__footer {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;

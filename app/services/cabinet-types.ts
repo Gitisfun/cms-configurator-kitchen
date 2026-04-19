@@ -9,6 +9,8 @@ export function cabinetTypesListQuery(page: number, pageSize: number) {
     'pagination[page]': page,
     'pagination[pageSize]': pageSize,
     'populate[depthOptions]': 'true',
+    /** Used to decide if variant height is allowed (fixed series carcase height). */
+    'populate[cabinetSeries]': 'true',
   } as const;
 }
 

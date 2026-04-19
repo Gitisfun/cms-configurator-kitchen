@@ -8,12 +8,13 @@ export function depthOptionsListQuery(page: number, pageSize: number) {
   return {
     'pagination[page]': page,
     'pagination[pageSize]': pageSize,
+    'sort[0]': 'depth:asc',
   } as const;
 }
 
 export function depthOptionsForCabinetTypeQuery(cabinetTypeNumericId: number, page: number, pageSize: number) {
   return {
-    'filters[cabinetType][id][$eq]': cabinetTypeNumericId,
+    'filters[cabinetTypes][id][$eq]': cabinetTypeNumericId,
     'pagination[page]': page,
     'pagination[pageSize]': pageSize,
     'sort[0]': 'depth:asc',

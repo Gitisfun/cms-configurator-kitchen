@@ -120,13 +120,14 @@ import {
   type CabinetVariantsResponse,
 } from '../services/cabinet-variants';
 import { getAllCabinetTypes, type CabinetType } from '../services/cabinet-types';
+import { variantHeightLockedFromCabinetTypeRelation } from '../utils/seriesVariantHeight';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
 
 const variantModalRef = ref<{
-  openCreateForType: (cabinetTypeNumericId: number) => void;
-  openEdit: (row: CabinetVariant) => void;
+  openCreateForType: (cabinetTypeNumericId: number, options?: { lockVariantHeight?: boolean }) => void;
+  openEdit: (row: CabinetVariant, options?: { lockVariantHeight?: boolean }) => void;
 } | null>(null);
 
 const cabinetTypeOptions = ref<CabinetType[]>([]);
@@ -141,6 +142,20 @@ const canOpenCreateVariant = computed(() => {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0;
 });
+
+const selectedCabinetType = computed((): CabinetType | null => {
+  const raw = selectedCabinetTypeIdRaw.value.trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return cabinetTypeOptions.value.find((t) => t.id === n) ?? null;
+});
+
+const lockVariantHeightForCreate = computed(() =>
+  selectedCabinetType.value != null
+    ? variantHeightLockedFromCabinetTypeRelation(selectedCabinetType.value)
+    : false,
+);
 
 onMounted(async () => {
   typesLoading.value = true;
@@ -157,11 +172,15 @@ onMounted(async () => {
 function openCreateForSelectedType() {
   const n = Number(selectedCabinetTypeIdRaw.value.trim());
   if (!Number.isFinite(n) || n <= 0) return;
-  variantModalRef.value?.openCreateForType(n);
+  variantModalRef.value?.openCreateForType(n, {
+    lockVariantHeight: lockVariantHeightForCreate.value,
+  });
 }
 
 function openEditModal(row: CabinetVariant) {
-  variantModalRef.value?.openEdit(row);
+  variantModalRef.value?.openEdit(row, {
+    lockVariantHeight: variantHeightLockedFromCabinetTypeRelation(row.cabinetType),
+  });
 }
 
 const { data, pending, error, refresh } = useFetch<CabinetVariantsResponse>(cabinetVariantsListPath, {
