@@ -1,4 +1,4 @@
-import type { StrapiFile, StrapiMetaPagination } from '../../../app/models/strapi-upload';
+import type { StrapiFile, StrapiMetaPagination } from '../../../../app/models/strapi-upload';
 
 function mapFile(config: { strapiUrl: string }, file: StrapiFile) {
   return {

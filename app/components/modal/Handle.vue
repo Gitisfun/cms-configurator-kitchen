@@ -3,25 +3,15 @@
     <BaseModal v-model="modalOpen" title-id="handle-modal-title" :title="editingHandle ? 'Edit handle' : 'New handle'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="handle-modal-form" @submit.prevent="submitModal">
         <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
-        <BaseInputField label="Image" spaced>
-          <div class="handle-image-row">
-            <div class="handle-image-preview">
-              <img v-if="modalImagePreview" :src="modalImagePreview" alt="" class="handle-image-preview__img" />
-              <div v-else class="handle-image-preview__placeholder">
-                <Icon name="lucide:image" />
-                <span>No image</span>
-              </div>
-            </div>
-            <div class="handle-image-actions">
-              <input ref="imageFileInputRef" type="file" accept="image/*" class="visually-hidden" tabindex="-1" aria-hidden="true" @change="onImageFile" />
-              <BaseButton type="button" variant="outlined" size="sm" :disabled="formSaving || uploadingImage" :loading="uploadingImage" @click="imageFileInputRef?.click()">
-                {{ uploadingImage ? 'Uploading…' : 'Upload' }}
-              </BaseButton>
-              <BaseButton type="button" variant="outlined" size="sm" :disabled="formSaving" @click="openMediaPicker"> From library </BaseButton>
-              <BaseButton v-if="canRemoveImage" type="button" variant="text" danger size="sm" :disabled="formSaving" @click="clearImage"> Remove </BaseButton>
-            </div>
-          </div>
-        </BaseInputField>
+        <BaseImageUpload
+          ref="imageFieldRef"
+          v-model:image-id="formImageId"
+          v-model:image-touched="formImageTouched"
+          :row-preview-url="rowImage.src"
+          :row-image-id="rowImage.id"
+          :disabled="formSaving"
+          @error="onImageFieldError"
+        />
         <div class="front-modal__field front-modal__field--spaced">
           <span class="front-modal__label"> Handle position </span>
           <select v-model="formHandlePositionIdRaw" class="front-modal__select" :disabled="formSaving || handlePositionsLoading">
@@ -51,12 +41,10 @@
       </template>
     </BaseModal>
 
-    <ModalMedia v-model="mediaPickerOpen" @select="onMediaPickerSelect" />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { MediaPickerFile } from './Media.vue';
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
 import { extractHandlePositionRelation } from '../../utils/handlePositionRelation';
 import { extractPlinthImage } from '../../utils/plinthImage';
@@ -64,9 +52,7 @@ import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import {
   createHandle,
   getAllHandlePositions,
-  parseUploadResponseId,
   updateHandle,
-  uploadMedia,
   type Handle,
 } from '../../services';
 import type { HandlePosition } from '../../services/handle-positions';
@@ -90,45 +76,20 @@ const formHandlePositionIdRaw = ref('');
 const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
-const imageFileInputRef = ref<HTMLInputElement | null>(null);
+const imageFieldRef = ref<{ reset: () => void; attemptCloseMediaPicker: () => boolean } | null>(null);
 
 const formImageId = ref<number | null>(null);
 const formImageTouched = ref(false);
-const imagePreviewUrlOverride = ref<string | null>(null);
-let blobPreviewUrl: string | null = null;
-
-const uploadingImage = ref(false);
-const mediaPickerOpen = ref(false);
 
 const handlePositionOptions = ref<HandlePosition[]>([]);
 const handlePositionsLoading = ref(false);
 const handlePositionLoadError = ref('');
 
-const modalImagePreview = computed(() => {
-  if (imagePreviewUrlOverride.value) {
-    return imagePreviewUrlOverride.value;
-  }
-  if (formImageTouched.value && formImageId.value === null) {
-    return null;
-  }
+const rowImage = computed(() => {
   const row = editingHandle.value;
-  if (row && !formImageTouched.value) {
-    return extractPlinthImage(row, strapiPublicUrl.value).src;
-  }
-  return null;
-});
-
-function handleImageId(row: HandleModalRow): number | null {
-  return extractPlinthImage(row, strapiPublicUrl.value).id;
-}
-
-const canRemoveImage = computed(() => {
-  if (modalImagePreview.value) return true;
-  const row = editingHandle.value;
-  if (row && !formImageTouched.value) {
-    return handleImageId(row) != null;
-  }
-  return false;
+  if (!row) return { src: null as string | null, id: null as number | null };
+  const ex = extractPlinthImage(row, strapiPublicUrl.value);
+  return { src: ex.src, id: ex.id };
 });
 
 async function loadHandlePositionsIfNeeded() {
@@ -145,79 +106,12 @@ async function loadHandlePositionsIfNeeded() {
   }
 }
 
-function revokeBlobPreview() {
-  if (blobPreviewUrl) {
-    URL.revokeObjectURL(blobPreviewUrl);
-    if (imagePreviewUrlOverride.value === blobPreviewUrl) {
-      imagePreviewUrlOverride.value = null;
-    }
-    blobPreviewUrl = null;
-  }
-}
-
-function setBlobPreview(file: File) {
-  revokeBlobPreview();
-  blobPreviewUrl = URL.createObjectURL(file);
-  imagePreviewUrlOverride.value = blobPreviewUrl;
-}
-
 function resetImageFormState() {
-  revokeBlobPreview();
-  imagePreviewUrlOverride.value = null;
-  formImageId.value = null;
-  formImageTouched.value = false;
-  if (imageFileInputRef.value) imageFileInputRef.value.value = '';
+  imageFieldRef.value?.reset();
 }
 
-async function onImageFile(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    formError.value = 'Please choose an image file.';
-    input.value = '';
-    return;
-  }
-  formError.value = '';
-  uploadingImage.value = true;
-  try {
-    const fd = new FormData();
-    fd.append('files', file);
-    const raw = await uploadMedia(fd);
-    const first = parseUploadResponseId(raw);
-    if (!first) {
-      formError.value = 'Upload did not return a file id.';
-      return;
-    }
-    formImageId.value = first.id;
-    formImageTouched.value = true;
-    setBlobPreview(file);
-  } catch {
-    formError.value = 'Upload failed.';
-  } finally {
-    uploadingImage.value = false;
-    input.value = '';
-  }
-}
-
-function clearImage() {
-  formImageId.value = null;
-  formImageTouched.value = true;
-  revokeBlobPreview();
-  imagePreviewUrlOverride.value = null;
-  if (imageFileInputRef.value) imageFileInputRef.value.value = '';
-}
-
-function openMediaPicker() {
-  if (formSaving.value) return;
-  mediaPickerOpen.value = true;
-}
-
-function onMediaPickerSelect(f: MediaPickerFile) {
-  revokeBlobPreview();
-  imagePreviewUrlOverride.value = f.thumbnail || f.url;
-  formImageId.value = f.id;
-  formImageTouched.value = true;
+function onImageFieldError(message: string) {
+  formError.value = message;
 }
 
 function openCreate() {
@@ -263,7 +157,6 @@ function openEdit(row: HandleModalRow) {
 
 function closeModal() {
   if (formSaving.value) return;
-  mediaPickerOpen.value = false;
   resetImageFormState();
   modalOpen.value = false;
   editingHandle.value = null;
@@ -382,8 +275,7 @@ watch(modalOpen, (open) => {
   if (open) {
     escKeyHandler = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || formSaving.value) return;
-      if (mediaPickerOpen.value) {
-        mediaPickerOpen.value = false;
+      if (imageFieldRef.value?.attemptCloseMediaPicker()) {
         return;
       }
       closeModal();
@@ -402,18 +294,6 @@ defineExpose({ openCreate, openEdit });
 </script>
 
 <style scoped>
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .front-modal__field--spaced {
   margin-top: 1rem;
 }
@@ -447,64 +327,6 @@ defineExpose({ openCreate, openEdit });
 .front-modal__select:disabled {
   opacity: 0.65;
   cursor: not-allowed;
-}
-
-.handle-image-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-@media (min-width: 480px) {
-  .handle-image-row {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
-
-.handle-image-preview {
-  flex-shrink: 0;
-  width: 120px;
-  height: 120px;
-  border-radius: var(--button-radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.handle-image-preview__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.handle-image-preview__placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.5rem;
-  color: var(--color-text-muted);
-  font-size: var(--paragraph-size-small);
-  text-align: center;
-}
-
-.handle-image-preview__placeholder :deep(svg) {
-  width: 28px;
-  height: 28px;
-  opacity: 0.6;
-}
-
-.handle-image-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
 }
 
 .handle-checkbox {

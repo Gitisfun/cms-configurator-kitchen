@@ -54,6 +54,7 @@
           </div>
         </div>
 
+        <div class="catalog-page__list">
         <p v-if="types.length === 0 && !pending" class="catalog-page__empty-types">
           No cabinet types in this series yet. Add a type to start building variants and prices.
         </p>
@@ -228,7 +229,7 @@
                   Link depth option
                 </BaseButton>
               </div>
-              <div v-if="depthOptionsListed(cabinetType).length > 0" class="catalog-matrix-wrap">
+              <div v-if="depthOptionsListed(cabinetType).length > 0" class="catalog-depth-matrix-wrap">
                 <table class="catalog-depth-matrix">
                   <thead>
                     <tr>
@@ -236,8 +237,8 @@
                       <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-mm">
                         Depth <span class="catalog-matrix__th-sub">(mm)</span>
                       </th>
-                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-edit">Edit</th>
-                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-remove">Remove</th>
+                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-edit" aria-label="Edit"></th>
+                      <th scope="col" class="catalog-depth-matrix__th catalog-depth-matrix__th-remove" aria-label="Remove"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -267,6 +268,7 @@
               <p v-else class="catalog-depth-section__empty">No depth options linked yet. Use Link depth option to attach rows from the library.</p>
             </div>
           </div>
+        </div>
         </div>
         </div>
       </template>
@@ -576,8 +578,11 @@ useHead({
 
 <style scoped>
 .catalog-page__panel-body {
-  padding: 1.25rem 1.25rem 1.5rem;
+  padding: 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .catalog-page__toolbar {
@@ -615,9 +620,19 @@ useHead({
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.25rem;
+  margin: 0;
+  padding: 1.25rem 1.25rem 1.25rem;
+  background: var(--color-surface-card);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.catalog-page__list {
+  flex: 1;
+  min-height: 0;
+  padding: 1rem 1.25rem 1.5rem;
+  background: color-mix(in srgb, var(--color-info-muted) 55%, var(--color-surface));
+  box-sizing: border-box;
 }
 
 .catalog-page__title {
@@ -792,6 +807,16 @@ useHead({
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--button-radius);
+  background: var(--color-surface-card);
+}
+
+/** Depth table fits the card width; avoid overflow-x: auto so no spurious horizontal scrollbar. */
+.catalog-depth-matrix-wrap {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
   background: var(--color-surface-card);
@@ -1164,23 +1189,22 @@ useHead({
 }
 
 .catalog-depth-matrix__th-mm {
-  width: 5.25rem;
+  width: 7rem;
+  min-width: 7rem;
   text-align: right;
 }
 
 .catalog-depth-matrix__th-edit {
-  width: 3.75rem;
-  min-width: 3.75rem;
-  max-width: 3.75rem;
+  width: 4.75rem;
+  min-width: 4.75rem;
   text-align: right;
   font-size: 0.7rem;
 }
 
 .catalog-depth-matrix__th-remove {
-  width: 4.25rem;
-  min-width: 4.25rem;
-  max-width: 4.25rem;
-  text-align: right;
+  width: 5.75rem;
+  min-width: 5.75rem;
+  text-align: center;
   font-size: 0.7rem;
 }
 
@@ -1197,16 +1221,29 @@ useHead({
   color: var(--color-text-primary);
 }
 
-.catalog-depth-matrix__td-edit,
-.catalog-depth-matrix__td-remove {
+.catalog-depth-matrix__td-edit {
   text-align: right;
   white-space: nowrap;
   vertical-align: middle;
 }
 
-.catalog-depth-matrix__td-edit :deep(.base-btn),
+.catalog-depth-matrix__td-remove {
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.catalog-depth-matrix__td-edit :deep(.base-btn) {
+  font-size: 0.78rem;
+}
+
 .catalog-depth-matrix__td-remove :deep(.base-btn) {
   font-size: 0.78rem;
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 </style>

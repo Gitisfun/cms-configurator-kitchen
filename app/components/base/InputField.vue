@@ -1,5 +1,11 @@
 <template>
-  <label
+  <!--
+    Default wrapper is <label> so clicking the caption focuses the built-in input.
+    Set useLabelWrapper false when the slot contains a file input or other controls where
+    a wrapping <label> would forward clicks to the wrong control (HTML activates the first labeled input).
+  -->
+  <component
+    :is="useLabelWrapper ? 'label' : 'div'"
     class="base-input-field"
     :class="{ 'base-input-field--spaced': spaced }"
   >
@@ -15,7 +21,7 @@
       class="base-input-field__input"
       v-bind="$attrs"
     />
-  </label>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -27,10 +33,16 @@ withDefaults(
     /** Visually mark the label as required (e.g. asterisk). */
     requiredMark?: boolean;
     spaced?: boolean;
+    /**
+     * When false, the field is wrapped in a div instead of a label.
+     * Use for custom slot content that includes file inputs or multiple controls.
+     */
+    useLabelWrapper?: boolean;
   }>(),
   {
     requiredMark: false,
     spaced: false,
+    useLabelWrapper: true,
   },
 );
 

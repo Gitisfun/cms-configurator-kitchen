@@ -1,10 +1,10 @@
 <template>
   <div>
-    <CmsPageHeader title="Depth Options" description="Overview of depth rows per cabinet type. To add options, edit a cabinet type and use “Add depth option” there.">
+    <CmsPageHeader title="Depth Options" description="Overview of depth rows per cabinet type. To link options, open Products (catalog), pick a series, expand a cabinet type, and use “Link depth option” there.">
       <template #actions>
-        <BaseButton type="button" variant="outlined" @click="goToCabinetTypes">
-          <Icon name="lucide:layout-list" class="base-btn__icon" />
-          Cabinet types
+        <BaseButton type="button" variant="outlined" @click="goToProducts">
+          <Icon name="lucide:package" class="base-btn__icon" />
+          Products (catalog)
         </BaseButton>
       </template>
     </CmsPageHeader>
@@ -25,10 +25,10 @@
           <Icon name="lucide:ruler" />
         </div>
         <h3 class="base-panel__empty-title">No depth options yet</h3>
-        <p class="base-panel__empty-desc">Add depth options from a cabinet type: open Cabinet types, edit a type, then “Add depth option”.</p>
-        <BaseButton type="button" @click="goToCabinetTypes">
-          <Icon name="lucide:layout-list" class="base-btn__icon" />
-          Go to cabinet types
+        <p class="base-panel__empty-desc">Link depth options from the product catalog: open Products, choose a series, expand a cabinet type, then “Link depth option”.</p>
+        <BaseButton type="button" @click="goToProducts">
+          <Icon name="lucide:package" class="base-btn__icon" />
+          Go to products
         </BaseButton>
       </template>
       <template #empty-offpage>
@@ -118,8 +118,8 @@ const pagination = computed(() => data.value?.meta?.pagination);
 const { modalRef, openEditModal } = useModal<DepthOption>();
 const deletingDocumentId = ref<string | null>(null);
 
-function goToCabinetTypes() {
-  void navigateTo('/cabinet-types');
+function goToProducts() {
+  void navigateTo('/products');
 }
 
 function typeLabel(row: DepthOption): string {

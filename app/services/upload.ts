@@ -16,6 +16,12 @@ export function fetchMediaFilesPage(query: { page: number; pageSize: number }) {
   return $fetch<MediaFilesPage>(uploadFilesListPath, { query });
 }
 
+export function deleteMediaFile(id: number) {
+  return $fetch(`${uploadFilesListPath}/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 /** First uploaded file id from Strapi-style upload JSON. */
 export function parseUploadResponseId(raw: unknown): { id: number } | null {
   if (

@@ -31,9 +31,19 @@
       </div>
 
       <div class="sidebar__section">
-        <span class="sidebar__section-label">Cabinets</span>
+        <span class="sidebar__section-label">Materials</span>
         <CmsSidebarItem
-          v-for="item in cabinetItems"
+          v-for="item in materialItems"
+          :key="item.to"
+          v-bind="item"
+          :collapsed="collapsed"
+        />
+      </div>
+
+      <div class="sidebar__section">
+        <span class="sidebar__section-label">Others</span>
+        <CmsSidebarItem
+          v-for="item in otherItems"
           :key="item.to"
           v-bind="item"
           :collapsed="collapsed"
@@ -73,30 +83,28 @@ const { collapsed, toggle } = useSidebar();
 
 const mainItems = [
   { to: '/', icon: 'lucide:layout-dashboard', text: 'Dashboard' },
+  { to: '/orders', icon: 'lucide:shopping-cart', text: 'Orders' },
 ];
 
 const contentItems = [
-  { to: '/products', icon: 'lucide:package', text: 'Products (catalog)' },
   { to: '/categories', icon: 'lucide:folder-tree', text: 'Categories' },
   { to: '/subcategories', icon: 'lucide:folder-git-2', text: 'Subcategories' },
-  { to: '/price-classes', icon: 'lucide:layers', text: 'Price classes' },
-  { to: '/fronts', icon: 'lucide:panels-top-left', text: 'Fronts' },
-  { to: '/backs', icon: 'lucide:panel-bottom', text: 'Backs' },
-  { to: '/handle-positions', icon: 'lucide:crosshair', text: 'Handle positions' },
-  { to: '/handles', icon: 'lucide:grip-vertical', text: 'Handles' },
-  { to: '/plinths', icon: 'lucide:stretch-horizontal', text: 'Plinths' },
-  { to: '/orders', icon: 'lucide:shopping-cart', text: 'Orders' },
-  { to: '/media', icon: 'lucide:image', text: 'Media' },
+  { to: '/products', icon: 'lucide:package', text: 'Products' },
+  { to: '/cabinet-accessories', icon: 'lucide:puzzle', text: 'Accessories' },
 ];
 
-const cabinetItems = [
-  { to: '/cabinet-series', icon: 'lucide:box', text: 'Cabinet Series' },
-  { to: '/cabinet-types', icon: 'lucide:layout-list', text: 'Cabinet Types' },
-  { to: '/cabinet-variants', icon: 'lucide:copy', text: 'Cabinet Variants' },
-  { to: '/cabinet-prices', icon: 'lucide:tag', text: 'Cabinet Prices' },
-  { to: '/cabinet-accessories', icon: 'lucide:puzzle', text: 'Accessories' },
-  { to: '/cabinet-type-surcharges', icon: 'lucide:percent', text: 'Type surcharges' },
-  { to: '/depth-options', icon: 'lucide:ruler', text: 'Depth Options' },
+const materialItems = [
+  { to: '/fronts', icon: 'lucide:panels-top-left', text: 'Fronts' },
+  { to: '/backs', icon: 'lucide:panel-bottom', text: 'Backs' },
+  { to: '/handles', icon: 'lucide:grip-vertical', text: 'Handles' },
+  { to: '/plinths', icon: 'lucide:stretch-horizontal', text: 'Plinths' },
+];
+
+const otherItems = [
+  { to: '/media', icon: 'lucide:image', text: 'Media' },
+  { to: '/cabinet-type-surcharges', icon: 'lucide:percent', text: 'Surcharges' },
+  { to: '/depth-options', icon: 'lucide:ruler', text: 'Depth options' },
+  { to: '/handle-positions', icon: 'lucide:crosshair', text: 'Handle positions' },
 ];
 
 const systemItems = [
