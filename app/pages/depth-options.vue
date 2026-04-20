@@ -1,10 +1,14 @@
 <template>
   <div>
-    <CmsPageHeader title="Depth Options" description="Overview of depth rows per cabinet type. To link options, open Products (catalog), pick a series, expand a cabinet type, and use “Link depth option” there.">
+    <CmsPageHeader title="Depth Options" description="Manage depth rows used across cabinet types. Add, edit or delete options here, or link them to a cabinet type from Products.">
       <template #actions>
         <BaseButton type="button" variant="outlined" @click="goToProducts">
           <Icon name="lucide:package" class="base-btn__icon" />
           Products (catalog)
+        </BaseButton>
+        <BaseButton type="button" @click="openCreateModal">
+          <Icon name="lucide:plus" class="base-btn__icon" />
+          Add depth option
         </BaseButton>
       </template>
     </CmsPageHeader>
@@ -25,10 +29,10 @@
           <Icon name="lucide:ruler" />
         </div>
         <h3 class="base-panel__empty-title">No depth options yet</h3>
-        <p class="base-panel__empty-desc">Link depth options from the product catalog: open Products, choose a series, expand a cabinet type, then “Link depth option”.</p>
-        <BaseButton type="button" @click="goToProducts">
-          <Icon name="lucide:package" class="base-btn__icon" />
-          Go to products
+        <p class="base-panel__empty-desc">Create a depth option here, then link it to one or more cabinet types from Products.</p>
+        <BaseButton type="button" @click="openCreateModal">
+          <Icon name="lucide:plus" class="base-btn__icon" />
+          Add depth option
         </BaseButton>
       </template>
       <template #empty-offpage>
@@ -115,7 +119,7 @@ const { data, pending, error, refresh } = useFetch<DepthOptionsResponse>(depthOp
 const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
-const { modalRef, openEditModal } = useModal<DepthOption>();
+const { modalRef, openCreateModal, openEditModal } = useModal<DepthOption>();
 const deletingDocumentId = ref<string | null>(null);
 
 function goToProducts() {

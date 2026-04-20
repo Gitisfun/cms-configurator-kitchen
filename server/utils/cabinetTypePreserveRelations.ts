@@ -24,9 +24,9 @@ export function mergePreservedCabinetTypeRelations(
   const d = documentIds(existing.depthOptions);
   if (d.length) data.depthOptions = { set: d };
 
-  const s = documentIds(existing.typeSurcharges);
-  if (s.length) data.typeSurcharges = { set: s };
-
   const a = documentIds(existing.accessories);
   if (a.length) data.accessories = { set: a };
+
+  const sl = documentIds(existing.surchargeLinks);
+  if (sl.length) data.surchargeLinks = { set: sl };
 }

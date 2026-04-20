@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const existingRes = await $fetch<{ data?: Record<string, unknown> }>(
-      `${config.strapiUrl}/api/cabinet-types/${encodeURIComponent(documentId)}?populate[variants]=true&populate[depthOptions]=true&populate[typeSurcharges]=true&populate[accessories]=true`,
+      `${config.strapiUrl}/api/cabinet-types/${encodeURIComponent(documentId)}?populate[variants]=true&populate[depthOptions]=true&populate[accessories]=true&populate[surchargeLinks]=true`,
       {
         headers: {
           Authorization: `Bearer ${config.strapiToken}`,

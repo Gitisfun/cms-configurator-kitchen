@@ -5,9 +5,12 @@ export default defineEventHandler(async (event) => {
 
   const qs = sp.toString();
 
-  return await $fetch(`${config.strapiUrl}/api/cabinet-type-surcharges${qs ? `?${qs}` : ''}`, {
-    headers: {
-      Authorization: `Bearer ${config.strapiToken}`,
+  return await $fetch(
+    `${config.strapiUrl}/api/cabinet-type-surcharge-links${qs ? `?${qs}` : ''}`,
+    {
+      headers: {
+        Authorization: `Bearer ${config.strapiToken}`,
+      },
     },
-  });
+  );
 });

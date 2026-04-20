@@ -8,7 +8,7 @@
 
       <div class="cs-modal__field cs-modal__field--spaced">
         <span class="cs-modal__label">Product line</span>
-        <select v-model="formProductLine" class="cs-modal__select" :disabled="formSaving">
+        <select v-model="formProductLine" class="cs-modal__select cms-native-select" :disabled="formSaving">
           <option value="">— None —</option>
           <option value="standard">Standard</option>
           <option value="cLine">C-Line</option>
@@ -17,15 +17,40 @@
       </div>
 
       <div class="cs-modal__field cs-modal__field--spaced">
+        <span class="cs-modal__label">Belongs to (choose one)</span>
+        <div class="subcat-mode" role="radiogroup" aria-label="Link series to category or subcategory">
+          <label class="subcat-mode__opt">
+            <input v-model="formTaxonomyMode" type="radio" value="category" class="subcat-mode__radio" :disabled="formSaving" />
+            <span>Category</span>
+          </label>
+          <label class="subcat-mode__opt">
+            <input v-model="formTaxonomyMode" type="radio" value="subcategory" class="subcat-mode__radio" :disabled="formSaving" />
+            <span>Subcategory</span>
+          </label>
+        </div>
+      </div>
+
+      <div v-if="formTaxonomyMode === 'category'" class="cs-modal__field cs-modal__field--spaced">
+        <span class="cs-modal__label">Category</span>
+        <select v-model="formCategoryIdRaw" class="cs-modal__select cms-native-select" :disabled="formSaving || taxonomyLoading">
+          <option value="">— Select —</option>
+          <option v-for="c in categoryOptions" :key="c.documentId" :value="String(c.id)">
+            {{ c.name }}
+          </option>
+        </select>
+      </div>
+
+      <div v-else class="cs-modal__field cs-modal__field--spaced">
         <span class="cs-modal__label">Subcategory</span>
-        <select v-model="formSubcategoryIdRaw" class="cs-modal__select" :disabled="formSaving || subcategoriesLoading">
-          <option value="">— None —</option>
+        <select v-model="formSubcategoryIdRaw" class="cs-modal__select cms-native-select" :disabled="formSaving || taxonomyLoading">
+          <option value="">— Select —</option>
           <option v-for="sc in subcategoryOptions" :key="sc.documentId" :value="String(sc.id)">
             {{ sc.name }}
           </option>
         </select>
-        <p v-if="subcategoryLoadError" class="base-modal__error">{{ subcategoryLoadError }}</p>
       </div>
+
+      <p v-if="taxonomyLoadError" class="base-modal__error">{{ taxonomyLoadError }}</p>
 
       <p v-if="formError" class="base-modal__error">{{ formError }}</p>
     </form>
@@ -42,6 +67,7 @@
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
 import { extractRelationNumericId } from '../../utils/strapiRelationMeta';
 import { createCabinetSeries, updateCabinetSeries, type CabinetSeries } from '../../services/cabinet-series';
+import { getAllCategories, type Category } from '../../services/categories';
 import { getAllSubcategories, type Subcategory } from '../../services/subcategories';
 
 export type CabinetSeriesModalRow = CabinetSeries;
@@ -57,26 +83,30 @@ const formCode = ref('');
 const formCarcaseHeight = ref('');
 const formDefaultCarcaseDepth = ref('');
 const formProductLine = ref('');
+const formTaxonomyMode = ref<'category' | 'subcategory'>('category');
+const formCategoryIdRaw = ref('');
 const formSubcategoryIdRaw = ref('');
 const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
 
+const categoryOptions = ref<Category[]>([]);
 const subcategoryOptions = ref<Subcategory[]>([]);
-const subcategoriesLoading = ref(false);
-const subcategoryLoadError = ref('');
+const taxonomyLoading = ref(false);
+const taxonomyLoadError = ref('');
 
-async function loadSubcategoriesIfNeeded() {
-  if (subcategoryOptions.value.length > 0 || subcategoriesLoading.value) return;
-  subcategoryLoadError.value = '';
-  subcategoriesLoading.value = true;
+async function loadTaxonomy() {
+  if (taxonomyLoading.value) return;
+  taxonomyLoadError.value = '';
+  taxonomyLoading.value = true;
   try {
-    const res = await getAllSubcategories(1, 200);
-    subcategoryOptions.value = res.data;
+    const [cats, subs] = await Promise.all([getAllCategories(1, 200), getAllSubcategories(1, 500)]);
+    categoryOptions.value = cats.data;
+    subcategoryOptions.value = subs.data;
   } catch {
-    subcategoryLoadError.value = 'Could not load subcategories.';
+    taxonomyLoadError.value = 'Could not load categories or subcategories.';
   } finally {
-    subcategoriesLoading.value = false;
+    taxonomyLoading.value = false;
   }
 }
 
@@ -87,10 +117,12 @@ function openCreate() {
   formCarcaseHeight.value = '';
   formDefaultCarcaseDepth.value = '';
   formProductLine.value = '';
+  formTaxonomyMode.value = 'category';
+  formCategoryIdRaw.value = '';
   formSubcategoryIdRaw.value = '';
   formError.value = '';
   modalOpen.value = true;
-  void loadSubcategoriesIfNeeded();
+  void loadTaxonomy();
   nextTick(() => nameInputRef.value?.focus());
 }
 
@@ -101,11 +133,24 @@ function openEdit(row: CabinetSeriesModalRow) {
   formCarcaseHeight.value = row.carcaseHeight != null ? String(row.carcaseHeight) : '';
   formDefaultCarcaseDepth.value = row.defaultCarcaseDepth != null ? String(row.defaultCarcaseDepth) : '';
   formProductLine.value = row.productLine ?? '';
+  const catId = extractRelationNumericId(row.category);
   const scId = extractRelationNumericId(row.subcategory);
-  formSubcategoryIdRaw.value = scId != null ? String(scId) : '';
+  if (catId != null) {
+    formTaxonomyMode.value = 'category';
+    formCategoryIdRaw.value = String(catId);
+    formSubcategoryIdRaw.value = '';
+  } else if (scId != null) {
+    formTaxonomyMode.value = 'subcategory';
+    formSubcategoryIdRaw.value = String(scId);
+    formCategoryIdRaw.value = '';
+  } else {
+    formTaxonomyMode.value = 'category';
+    formCategoryIdRaw.value = '';
+    formSubcategoryIdRaw.value = '';
+  }
   formError.value = '';
   modalOpen.value = true;
-  void loadSubcategoriesIfNeeded();
+  void loadTaxonomy();
   nextTick(() => nameInputRef.value?.focus());
 }
 
@@ -117,16 +162,22 @@ function closeModal() {
 
 async function submitModal() {
   const name = formName.value.trim();
-  if (!name) { formError.value = 'Please enter a name.'; return; }
+  if (!name) {
+    formError.value = 'Please enter a name.';
+    return;
+  }
   const code = formCode.value.trim();
-  if (!code) { formError.value = 'Please enter a code.'; return; }
+  if (!code) {
+    formError.value = 'Please enter a code.';
+    return;
+  }
   formError.value = '';
   const body: Record<string, unknown> = {
     name,
     code,
   };
 
-  const chRaw = formCarcaseHeight.value.trim();
+  const chRaw = String(formCarcaseHeight.value ?? '').trim();
   if (chRaw !== '') {
     const carcaseHeight = Number(chRaw);
     if (!Number.isFinite(carcaseHeight) || carcaseHeight < 1) {
@@ -138,7 +189,7 @@ async function submitModal() {
     body.carcaseHeight = null;
   }
 
-  const depth = formDefaultCarcaseDepth.value.trim();
+  const depth = String(formDefaultCarcaseDepth.value ?? '').trim();
   if (depth !== '') {
     const n = Number(depth);
     if (!Number.isFinite(n) || n < 1) {
@@ -152,8 +203,15 @@ async function submitModal() {
 
   body.productLine = formProductLine.value || null;
 
-  const rawSc = formSubcategoryIdRaw.value.trim();
-  body.subcategoryId = rawSc ? Number(rawSc) : null;
+  if (formTaxonomyMode.value === 'category') {
+    const rawCat = formCategoryIdRaw.value.trim();
+    body.categoryId = rawCat ? Number(rawCat) : null;
+    body.subcategoryId = null;
+  } else {
+    const rawSc = formSubcategoryIdRaw.value.trim();
+    body.categoryId = null;
+    body.subcategoryId = rawSc ? Number(rawSc) : null;
+  }
 
   formSaving.value = true;
   try {
@@ -174,6 +232,14 @@ async function submitModal() {
 }
 
 let escKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+
+watch(formTaxonomyMode, (mode) => {
+  if (mode === 'category') {
+    formSubcategoryIdRaw.value = '';
+  } else {
+    formCategoryIdRaw.value = '';
+  }
+});
 
 watch(modalOpen, (open) => {
   if (import.meta.server) return;
@@ -214,13 +280,17 @@ defineExpose({ openCreate, openEdit });
 .cs-modal__select {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.625rem 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  padding-left: 0.75rem;
+  padding-right: var(--cms-select-padding-end);
+  padding-inline-end: var(--cms-select-padding-end);
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
   font-size: var(--paragraph-size-medium);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  background: var(--color-surface-card);
+  background-color: var(--color-surface-card);
 }
 
 .cs-modal__select:focus {
@@ -232,5 +302,24 @@ defineExpose({ openCreate, openEdit });
 .cs-modal__select:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.subcat-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.subcat-mode__opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: pointer;
+  font-size: var(--paragraph-size-medium);
+  color: var(--color-text-primary);
+}
+
+.subcat-mode__radio {
+  accent-color: var(--color-primary, #2563eb);
 }
 </style>

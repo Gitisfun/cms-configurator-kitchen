@@ -63,20 +63,37 @@ export function buildCabinetSeriesData(body: unknown): Record<string, unknown> {
     }
   }
 
-  if ('subcategoryId' in b) {
-    const v = b.subcategoryId;
-    if (v === null) {
-      data.subcategory = null;
-    } else if (typeof v === 'number' && Number.isFinite(v)) {
-      data.subcategory = v;
-    } else if (typeof v === 'string' && v.trim() !== '') {
+  function parseFk(v: unknown): number | null {
+    if (v === null || v === '' || v === undefined) return null;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '') {
       const n = Number(v.trim());
       if (!Number.isFinite(n)) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid subcategoryId' });
+        throw createError({ statusCode: 400, statusMessage: 'Invalid relation id' });
       }
-      data.subcategory = n;
+      return n;
+    }
+    throw createError({ statusCode: 400, statusMessage: 'Invalid relation id' });
+  }
+
+  if ('categoryId' in b || 'subcategoryId' in b) {
+    const catNum = 'categoryId' in b ? parseFk(b.categoryId) : null;
+    const subNum = 'subcategoryId' in b ? parseFk(b.subcategoryId) : null;
+    if (catNum != null && subNum != null) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'A series can be linked to either a category or a subcategory, not both.',
+      });
+    }
+    if (catNum != null) {
+      data.category = catNum;
+      data.subcategory = null;
+    } else if (subNum != null) {
+      data.subcategory = subNum;
+      data.category = null;
     } else {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid subcategoryId' });
+      data.category = null;
+      data.subcategory = null;
     }
   }
 

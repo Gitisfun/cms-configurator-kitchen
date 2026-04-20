@@ -12,67 +12,33 @@
     <nav class="sidebar__nav">
       <div class="sidebar__section">
         <span class="sidebar__section-label">Main</span>
-        <CmsSidebarItem
-          v-for="item in mainItems"
-          :key="item.to"
-          v-bind="item"
-          :collapsed="collapsed"
-        />
+        <CmsSidebarItem v-for="item in mainItems" :key="item.to" v-bind="item" :collapsed="collapsed" />
       </div>
 
       <div class="sidebar__section">
         <span class="sidebar__section-label">Content</span>
-        <CmsSidebarItem
-          v-for="item in contentItems"
-          :key="item.to"
-          v-bind="item"
-          :collapsed="collapsed"
-        />
+        <CmsSidebarItem v-for="item in contentItems" :key="item.to" v-bind="item" :collapsed="collapsed" />
       </div>
 
       <div class="sidebar__section">
         <span class="sidebar__section-label">Materials</span>
-        <CmsSidebarItem
-          v-for="item in materialItems"
-          :key="item.to"
-          v-bind="item"
-          :collapsed="collapsed"
-        />
+        <CmsSidebarItem v-for="item in materialItems" :key="item.to" v-bind="item" :collapsed="collapsed" />
       </div>
 
       <div class="sidebar__section">
         <span class="sidebar__section-label">Others</span>
-        <CmsSidebarItem
-          v-for="item in otherItems"
-          :key="item.to"
-          v-bind="item"
-          :collapsed="collapsed"
-        />
+        <CmsSidebarItem v-for="item in otherItems" :key="item.to" v-bind="item" :collapsed="collapsed" />
       </div>
 
       <div class="sidebar__section">
         <span class="sidebar__section-label">System</span>
-        <CmsSidebarItem
-          v-for="item in systemItems"
-          :key="item.to"
-          v-bind="item"
-          :collapsed="collapsed"
-        />
+        <CmsSidebarItem v-for="item in systemItems" :key="item.to" v-bind="item" :collapsed="collapsed" />
       </div>
     </nav>
 
     <div class="sidebar__footer">
-      <button
-        class="sidebar__toggle"
-        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        @click="toggle"
-      >
-        <Icon
-          name="lucide:panel-left-close"
-          class="sidebar__toggle-icon"
-          :class="{ 'sidebar__toggle-icon--flipped': collapsed }"
-        />
+      <button class="sidebar__toggle" :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click="toggle">
+        <Icon name="lucide:panel-left-close" class="sidebar__toggle-icon" :class="{ 'sidebar__toggle-icon--flipped': collapsed }" />
       </button>
     </div>
   </aside>
@@ -102,6 +68,7 @@ const materialItems = [
 
 const otherItems = [
   { to: '/media', icon: 'lucide:image', text: 'Media' },
+  { to: '/price-classes', icon: 'lucide:banknote', text: 'Price classes' },
   { to: '/cabinet-type-surcharges', icon: 'lucide:percent', text: 'Surcharges' },
   { to: '/depth-options', icon: 'lucide:ruler', text: 'Depth options' },
   { to: '/handle-positions', icon: 'lucide:crosshair', text: 'Handle positions' },
@@ -109,6 +76,7 @@ const otherItems = [
 
 const systemItems = [
   { to: '/users', icon: 'lucide:users', text: 'Users' },
+  { to: '/bulk-import', icon: 'lucide:file-json-2', text: 'Bulk import' },
   { to: '/settings', icon: 'lucide:settings', text: 'Settings' },
 ];
 </script>

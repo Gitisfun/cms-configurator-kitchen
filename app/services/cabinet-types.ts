@@ -29,7 +29,8 @@ export function cabinetTypesCatalogQuery(seriesNumericId: number, pageSize = 200
     'populate[variants][populate][0]': 'prices',
     'populate[variants][populate][prices][populate][0]': 'priceClass',
     'populate[depthOptions]': 'true',
-    'populate[typeSurcharges]': 'true',
+    'populate[surchargeLinks][populate][surcharge]': 'true',
+    'populate[surchargeLinks][populate][prices][populate][priceClass]': 'true',
   } as const;
 }
 

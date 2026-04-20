@@ -3,7 +3,7 @@ import type { CabinetSeries } from './cabinet-series';
 import type { Subcategory } from './subcategory';
 import type { CabinetVariant } from './cabinet-variant';
 import type { DepthOption } from './depth-option';
-import type { CabinetTypeSurcharge } from './cabinet-type-surcharge';
+import type { CabinetTypeSurchargeLink } from './cabinet-type-surcharge-link';
 
 export type CabinetTypeSubcategoryField =
   | Subcategory
@@ -29,9 +29,9 @@ export type CabinetTypeDepthOptionsField =
   | null
   | undefined;
 
-export type CabinetTypeSurchargesField =
-  | CabinetTypeSurcharge[]
-  | { data: CabinetTypeSurcharge[] }
+export type CabinetTypeSurchargeLinksField =
+  | CabinetTypeSurchargeLink[]
+  | { data: CabinetTypeSurchargeLink[] }
   | null
   | undefined;
 
@@ -46,7 +46,7 @@ export interface CabinetType {
   hasInternalPanel: boolean;
   depthSurchargeCode: string | null;
   depthOptions?: CabinetTypeDepthOptionsField;
-  typeSurcharges?: CabinetTypeSurchargesField;
+  surchargeLinks?: CabinetTypeSurchargeLinksField;
   subcategory?: CabinetTypeSubcategoryField;
   cabinetSeries?: CabinetTypeCabinetSeriesField;
   variants?: CabinetTypeVariantsField;

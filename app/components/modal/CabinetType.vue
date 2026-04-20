@@ -16,7 +16,6 @@
           <p class="ct-modal__hint">Include all features: door types, niches, shelves, compartments, etc.</p>
         </BaseInputField>
         <BaseInputField v-model="formOrderNumberPrefix" label="Order number prefix" type="text" name="orderNumberPrefix" autocomplete="off" maxlength="50" :disabled="formSaving" spaced />
-        <BaseInputField v-model="formDepthSurchargeCode" label="Depth surcharge code" type="text" name="depthSurchargeCode" autocomplete="off" maxlength="50" :disabled="formSaving" spaced />
 
         <div class="ct-modal__checks">
           <label class="ct-modal__checkbox-label">
@@ -35,18 +34,14 @@
 
         <div v-if="formShowDepthOptions" class="ct-modal__field ct-modal__field--spaced ct-modal__depth-section">
           <span class="ct-modal__label">Depth options</span>
-          <p v-if="!editing" class="ct-modal__hint">
-            Save this cabinet type with the button at the bottom, then edit the type again — the Add button will work once the type exists.
-          </p>
+          <p v-if="!editing" class="ct-modal__hint">Save this cabinet type with the button at the bottom, then edit the type again — the Add button will work once the type exists.</p>
           <template v-if="editing">
             <div v-if="depthOptionsListed.length > 0" class="ct-modal__depth-matrix-wrap">
               <table class="ct-modal__depth-matrix">
                 <thead>
                   <tr>
                     <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-name">Name</th>
-                    <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-mm">
-                      Width <span class="ct-modal__depth-matrix__th-sub">(mm)</span>
-                    </th>
+                    <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-mm">Width <span class="ct-modal__depth-matrix__th-sub">(mm)</span></th>
                     <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-act" aria-label="Edit"></th>
                     <th scope="col" class="ct-modal__depth-matrix__th ct-modal__depth-matrix__th-act" aria-label="Remove"></th>
                   </tr>
@@ -56,22 +51,10 @@
                     <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-name">{{ opt.name }}</td>
                     <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-mm">{{ opt.depth }} mm</td>
                     <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-act">
-                      <BaseButton type="button" variant="text" size="sm" :disabled="formSaving || deletingDepthDocumentId !== null" @click="openEditDepthOption(opt)">
-                        Edit
-                      </BaseButton>
+                      <BaseButton type="button" variant="text" size="sm" :disabled="formSaving || deletingDepthDocumentId !== null" @click="openEditDepthOption(opt)"> Edit </BaseButton>
                     </td>
                     <td class="ct-modal__depth-matrix__td ct-modal__depth-matrix__td-act">
-                      <BaseButton
-                        type="button"
-                        variant="text"
-                        danger
-                        size="sm"
-                        :disabled="formSaving || deletingDepthDocumentId !== null"
-                        :loading="deletingDepthDocumentId === opt.documentId"
-                        @click="confirmUnlinkDepthOption(opt)"
-                      >
-                        Unlink
-                      </BaseButton>
+                      <BaseButton type="button" variant="text" danger size="sm" :disabled="formSaving || deletingDepthDocumentId !== null" :loading="deletingDepthDocumentId === opt.documentId" @click="confirmUnlinkDepthOption(opt)"> Unlink </BaseButton>
                     </td>
                   </tr>
                 </tbody>
@@ -80,49 +63,14 @@
             <p v-else class="ct-modal__hint">No depth options for this type yet.</p>
           </template>
           <div class="ct-modal__depth-actions">
-            <BaseButton
-              type="button"
-              variant="outlined"
-              size="sm"
-              :disabled="formSaving || !editing || deletingDepthDocumentId !== null"
-              :title="!editing ? 'Save this cabinet type first, then edit it again to add depths' : undefined"
-              @click="openAddDepthOption"
-            >
+            <BaseButton type="button" variant="outlined" size="sm" :disabled="formSaving || !editing || deletingDepthDocumentId !== null" :title="!editing ? 'Save this cabinet type first, then edit it again to add depths' : undefined" @click="openAddDepthOption">
               <Icon name="lucide:plus" class="base-btn__icon" />
               Link depth option
             </BaseButton>
           </div>
         </div>
 
-        <div class="ct-modal__field ct-modal__field--spaced">
-          <span class="ct-modal__label">Subcategory</span>
-          <select v-model="formSubcategoryIdRaw" class="ct-modal__select" :disabled="formSaving || subcategoriesLoading">
-            <option value="">— None —</option>
-            <option v-for="sc in subcategoryOptions" :key="sc.documentId" :value="String(sc.id)">
-              {{ sc.name }}
-            </option>
-          </select>
-        </div>
-
-        <div v-if="!editing" class="ct-modal__field ct-modal__field--spaced">
-          <span class="ct-modal__label">Cabinet series</span>
-          <select v-model="formCabinetSeriesIdRaw" class="ct-modal__select" :disabled="formSaving || seriesLoading">
-            <option value="">— None —</option>
-            <option v-for="s in seriesOptions" :key="s.documentId" :value="String(s.id)">
-              {{ s.name }} ({{ s.code }})
-            </option>
-          </select>
-        </div>
-
-        <BaseImageUpload
-          ref="imageFieldRef"
-          v-model:image-id="formImageId"
-          v-model:image-touched="formImageTouched"
-          :row-preview-url="rowImage.src"
-          :row-image-id="rowImage.id"
-          :disabled="formSaving"
-          @error="onImageFieldError"
-        />
+        <BaseImageUpload ref="imageFieldRef" v-model:image-id="formImageId" v-model:image-touched="formImageTouched" :row-preview-url="rowImage.src" :row-image-id="rowImage.id" :disabled="formSaving" @error="onImageFieldError" />
 
         <p v-if="formError" class="base-modal__error">{{ formError }}</p>
       </form>
@@ -147,8 +95,6 @@ import { createCabinetType, getCabinetTypeById, updateCabinetType, type CabinetT
 import { updateDepthOption, type DepthOption } from '../../services/depth-options';
 import { strapiRelationList } from '../../utils/strapiRelationList';
 import { extractRelationNumericId } from '../../utils/strapiRelationMeta';
-import { getAllSubcategories, type Subcategory } from '../../services/subcategories';
-import { getAllCabinetSeries, type CabinetSeries } from '../../services/cabinet-series';
 
 export type CabinetTypeModalRow = CabinetType;
 
@@ -163,13 +109,12 @@ const editing = ref<CabinetTypeModalRow | null>(null);
 const formName = ref('');
 const formDescription = ref('');
 const formOrderNumberPrefix = ref('');
-const formDepthSurchargeCode = ref('');
 const formHasLeftRight = ref(false);
 const formHasInternalPanel = ref(false);
 /** When true, show the depth options list and add button (same row style as L/R / panel). */
 const formShowDepthOptions = ref(false);
-const formSubcategoryIdRaw = ref('');
-const formCabinetSeriesIdRaw = ref('');
+/** When adding a type from a series catalog page; not shown in the form. */
+const createCabinetSeriesNumericId = ref<number | null>(null);
 const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
@@ -177,11 +122,6 @@ const imageFieldRef = ref<{ reset: () => void; attemptCloseMediaPicker: () => bo
 
 const formImageId = ref<number | null>(null);
 const formImageTouched = ref(false);
-
-const subcategoryOptions = ref<Subcategory[]>([]);
-const subcategoriesLoading = ref(false);
-const seriesOptions = ref<CabinetSeries[]>([]);
-const seriesLoading = ref(false);
 
 const depthOptionModalRef = ref<{
   openEdit: (row: DepthOption, fallbackCabinetTypeNumericId?: number | null) => void;
@@ -265,41 +205,25 @@ async function confirmUnlinkDepthOption(opt: DepthOption) {
   }
 }
 
-async function loadRelationsIfNeeded() {
-  if (subcategoryOptions.value.length === 0 && !subcategoriesLoading.value) {
-    subcategoriesLoading.value = true;
-    try { subcategoryOptions.value = (await getAllSubcategories(1, 200)).data; } catch { /* ignore */ }
-    finally { subcategoriesLoading.value = false; }
-  }
-  if (!editing.value && seriesOptions.value.length === 0 && !seriesLoading.value) {
-    seriesLoading.value = true;
-    try { seriesOptions.value = (await getAllCabinetSeries(1, 200)).data; } catch { /* ignore */ }
-    finally { seriesLoading.value = false; }
-  }
-}
-
 function openCreate() {
   editing.value = null;
   formName.value = '';
   formDescription.value = '';
   formOrderNumberPrefix.value = '';
-  formDepthSurchargeCode.value = '';
   formHasLeftRight.value = false;
   formHasInternalPanel.value = false;
   formShowDepthOptions.value = false;
-  formSubcategoryIdRaw.value = '';
-  formCabinetSeriesIdRaw.value = '';
+  createCabinetSeriesNumericId.value = null;
   formError.value = '';
   resetImageFormState();
   modalOpen.value = true;
-  void loadRelationsIfNeeded();
   nextTick(() => nameInputRef.value?.focus());
 }
 
-/** Pre-select cabinet series (numeric Strapi id) when creating from the catalog workspace. */
+/** Attach new type to this series when creating from the catalog workspace (no series field in the form). */
 function openCreateForSeries(cabinetSeriesNumericId: number) {
   openCreate();
-  formCabinetSeriesIdRaw.value = String(cabinetSeriesNumericId);
+  createCabinetSeriesNumericId.value = cabinetSeriesNumericId;
 }
 
 function openEdit(row: CabinetTypeModalRow) {
@@ -307,17 +231,12 @@ function openEdit(row: CabinetTypeModalRow) {
   formName.value = row.name;
   formDescription.value = row.description ?? '';
   formOrderNumberPrefix.value = row.orderNumberPrefix ?? '';
-  formDepthSurchargeCode.value = row.depthSurchargeCode ?? '';
   formHasLeftRight.value = row.hasLeftRight;
   formHasInternalPanel.value = row.hasInternalPanel;
   formShowDepthOptions.value = strapiRelationList(row.depthOptions).length > 0;
-  const scId = extractRelationNumericId(row.subcategory);
-  formSubcategoryIdRaw.value = scId != null ? String(scId) : '';
-  formCabinetSeriesIdRaw.value = '';
   formError.value = '';
   resetImageFormState();
   modalOpen.value = true;
-  void loadRelationsIfNeeded();
   nextTick(() => nameInputRef.value?.focus());
 }
 
@@ -330,23 +249,23 @@ function closeModal() {
 
 async function submitModal() {
   const name = formName.value.trim();
-  if (!name) { formError.value = 'Please enter a name.'; return; }
+  if (!name) {
+    formError.value = 'Please enter a name.';
+    return;
+  }
 
   formError.value = '';
   const body: Record<string, unknown> = {
     name,
     description: formDescription.value.trim() || null,
     orderNumberPrefix: formOrderNumberPrefix.value.trim() || null,
-    depthSurchargeCode: formDepthSurchargeCode.value.trim() || null,
+    depthSurchargeCode: null,
     hasLeftRight: formHasLeftRight.value,
     hasInternalPanel: formHasInternalPanel.value,
   };
 
-  const rawSc = formSubcategoryIdRaw.value.trim();
-  body.subcategoryId = rawSc ? Number(rawSc) : null;
   if (!editing.value) {
-    const rawCs = formCabinetSeriesIdRaw.value.trim();
-    body.cabinetSeriesId = rawCs ? Number(rawCs) : null;
+    body.cabinetSeriesId = createCabinetSeriesNumericId.value;
   } else {
     /** Re-send series id so Strapi does not drop the many-to-one link on update (catalog relies on it). */
     const seriesId = extractRelationNumericId(editing.value.cabinetSeries);
@@ -379,7 +298,10 @@ let escKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
 watch(modalOpen, (open) => {
   if (import.meta.server) return;
-  if (escKeyHandler) { document.removeEventListener('keydown', escKeyHandler); escKeyHandler = null; }
+  if (escKeyHandler) {
+    document.removeEventListener('keydown', escKeyHandler);
+    escKeyHandler = null;
+  }
   if (open) {
     escKeyHandler = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || formSaving.value) return;
@@ -418,13 +340,17 @@ defineExpose({ openCreate, openCreateForSeries, openEdit });
 .ct-modal__select {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.625rem 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  padding-left: 0.75rem;
+  padding-right: var(--cms-select-padding-end);
+  padding-inline-end: var(--cms-select-padding-end);
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
   font-size: var(--paragraph-size-medium);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  background: var(--color-surface-card);
+  background-color: var(--color-surface-card);
 }
 
 .ct-modal__select:focus {
@@ -485,7 +411,7 @@ defineExpose({ openCreate, openCreateForSeries, openEdit });
   cursor: pointer;
 }
 
-.ct-modal__checkbox-label input[type="checkbox"] {
+.ct-modal__checkbox-label input[type='checkbox'] {
   width: 1rem;
   height: 1rem;
 }
@@ -507,7 +433,13 @@ defineExpose({ openCreate, openCreateForSeries, openEdit });
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.75rem;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-feature-settings: 'tnum' 1;
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <CmsPageHeader title="Cabinet type surcharges" description="Fixed surcharges linked to a cabinet type (name, code, price).">
+    <CmsPageHeader title="Cabinet type surcharges" description="Surcharges (name, code, optional dimension, optional value size).">
       <template #actions>
         <BaseButton type="button" @click="openCreateModal">
           <Icon name="lucide:plus" class="base-btn__icon" />
@@ -49,8 +49,8 @@
           <tr>
             <th scope="col">Name</th>
             <th scope="col">Code</th>
-            <th scope="col">Price</th>
-            <th scope="col">Cabinet type</th>
+            <th scope="col">Dimension</th>
+            <th scope="col">Value size</th>
             <th scope="col">Published</th>
             <th scope="col">Updated</th>
             <th scope="col" class="base-table__th-actions">Actions</th>
@@ -66,8 +66,8 @@
             </div>
           </td>
           <td>{{ row.code }}</td>
-          <td>{{ formatPrice(row.price) }}</td>
-          <td>{{ typeName(row) }}</td>
+          <td>{{ formatDimension(row.dimension) }}</td>
+          <td>{{ formatPrice(row.value ?? null) }}</td>
           <td>{{ formatDate(row.publishedAt) }}</td>
           <td>{{ formatDate(row.updatedAt) }}</td>
           <td class="base-table__actions">
@@ -105,6 +105,18 @@ import {
   type CabinetTypeSurcharge,
   type CabinetTypeSurchargesResponse,
 } from '../services/cabinet-type-surcharges';
+import type { CabinetTypeSurchargeDimension } from '../models/cabinet-type-surcharge';
+
+const DIMENSION_LABEL: Record<CabinetTypeSurchargeDimension, string> = {
+  height: 'Height',
+  width: 'Width',
+  depth: 'Depth',
+};
+
+function formatDimension(d: CabinetTypeSurchargeDimension | null | undefined): string {
+  if (d == null) return '—';
+  return DIMENSION_LABEL[d] ?? String(d);
+}
 
 const PAGE_SIZE = 25;
 const page = ref(1);
@@ -120,19 +132,6 @@ const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<CabinetTypeSurcharge>();
 const deletingDocumentId = ref<string | null>(null);
-
-function typeName(row: CabinetTypeSurcharge): string {
-  const ct = row.cabinetType;
-  if (!ct) return '—';
-  if (typeof ct === 'object' && 'name' in ct && typeof (ct as { name: string }).name === 'string') {
-    return (ct as { name: string }).name;
-  }
-  if (typeof ct === 'object' && 'data' in ct) {
-    const d = (ct as { data: { name: string } | null }).data;
-    return d?.name ?? '—';
-  }
-  return '—';
-}
 
 async function onSaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;

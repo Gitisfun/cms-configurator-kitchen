@@ -32,4 +32,27 @@
 
   /* ---------- Page Header ---------- */
   --page-header-margin-bottom: 1.5rem;
+
+  /* Chevron for native selects (used with .cms-native-select) */
+  --cms-select-chevron-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%231B3A5C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  /* Distance from field edge to chevron; padding-end must clear icon + this inset */
+  --cms-select-chevron-inset: 1rem;
+  --cms-select-chevron-size: 1.125rem;
+  --cms-select-padding-end: calc(var(--cms-select-chevron-inset) + var(--cms-select-chevron-size) + 0.75rem);
+}
+
+/**
+ * Native <select> arrows ignore padding in WebKit/Safari; strip the OS chrome and
+ * paint our own icon with a fixed inset from the right edge.
+ */
+select.cms-native-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: var(--cms-select-chevron-svg);
+  background-repeat: no-repeat;
+  background-position: right var(--cms-select-chevron-inset) center;
+  background-size: var(--cms-select-chevron-size) var(--cms-select-chevron-size);
+  padding-right: var(--cms-select-padding-end);
+  padding-inline-end: var(--cms-select-padding-end);
 }

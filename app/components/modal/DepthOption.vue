@@ -57,12 +57,13 @@ function resetForm() {
   formError.value = '';
 }
 
-/**
- * Required by `useModal` / CRUD pattern. New depth options can be created from the depth options list
- * or with an optional cabinet-type link.
- */
+/** Open the modal to create a new (standalone) depth option, no cabinet-type link. */
 function openCreate() {
-  /* no-op */
+  editing.value = null;
+  presetCabinetTypeDocumentId.value = null;
+  resetForm();
+  modalOpen.value = true;
+  nextTick(() => nameInputRef.value?.focus());
 }
 
 /** Create a depth option and optionally connect it to a cabinet type (document id). */

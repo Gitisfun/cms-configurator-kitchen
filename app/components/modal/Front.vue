@@ -16,7 +16,7 @@
         </BaseInputField>
         <div class="front-modal__field front-modal__field--spaced">
           <span class="front-modal__label"> Price class </span>
-          <select v-model="formPriceClassIdRaw" class="front-modal__select" :disabled="formSaving || priceClassesLoading">
+          <select v-model="formPriceClassIdRaw" class="front-modal__select cms-native-select" :disabled="formSaving || priceClassesLoading">
             <option value="">— None —</option>
             <option v-for="pc in priceClassOptions" :key="pc.documentId" :value="String(pc.id)">
               {{ pc.name }} (level {{ pc.level }})
@@ -243,13 +243,17 @@ defineExpose({ openCreate, openEdit });
 .front-modal__select {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.625rem 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  padding-left: 0.75rem;
+  padding-right: var(--cms-select-padding-end);
+  padding-inline-end: var(--cms-select-padding-end);
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
   font-size: var(--paragraph-size-medium);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  background: var(--color-surface-card);
+  background-color: var(--color-surface-card);
 }
 
 .front-modal__select:focus {

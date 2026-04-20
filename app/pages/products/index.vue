@@ -55,7 +55,7 @@
             <th scope="col">Carcase height</th>
             <th scope="col">Default depth</th>
             <th scope="col">Product line</th>
-            <th scope="col">Subcategory</th>
+            <th scope="col">Category / subcategory</th>
             <th scope="col" class="products-page__th-catalog">Catalog</th>
             <th scope="col">Updated</th>
             <th scope="col" class="base-table__th-actions">Actions</th>
@@ -76,7 +76,7 @@
           <td>{{ row.carcaseHeight != null ? `${row.carcaseHeight} mm` : '—' }}</td>
           <td>{{ row.defaultCarcaseDepth != null ? `${row.defaultCarcaseDepth} mm` : '—' }}</td>
           <td>{{ productLineLabel(row.productLine) }}</td>
-          <td>{{ subcategoryLabel(row) }}</td>
+          <td>{{ seriesTaxonomyLabel(row) }}</td>
           <td>
             <NuxtLink :to="`/products/${row.documentId}`" class="products-page__catalog-link">
               <Icon name="lucide:layout-grid" class="products-page__catalog-icon" />
@@ -141,13 +141,20 @@ function productLineLabel(pl: string | null): string {
   return map[pl] ?? pl;
 }
 
-function subcategoryLabel(row: CabinetSeries): string {
-  const sc = row.subcategory;
-  if (!sc) return '—';
-  if (typeof sc === 'object' && sc !== null && 'name' in sc) return (sc as { name: string }).name;
-  if (typeof sc === 'object' && sc !== null && 'data' in sc && (sc as { data: { name: string } | null }).data) {
-    return (sc as { data: { name: string } }).data.name;
+function relationName(rel: CabinetSeries['category'] | CabinetSeries['subcategory']): string {
+  if (!rel) return '';
+  if (typeof rel === 'object' && rel !== null && 'name' in rel) return (rel as { name: string }).name;
+  if (typeof rel === 'object' && rel !== null && 'data' in rel && (rel as { data: { name: string } | null }).data) {
+    return (rel as { data: { name: string } }).data.name;
   }
+  return '';
+}
+
+function seriesTaxonomyLabel(row: CabinetSeries): string {
+  const cat = relationName(row.category);
+  if (cat) return cat;
+  const sub = relationName(row.subcategory);
+  if (sub) return sub;
   return '—';
 }
 

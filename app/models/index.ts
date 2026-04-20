@@ -21,9 +21,19 @@ export type {
 } from './cabinet-type';
 export type {
   CabinetTypeSurcharge,
+  CabinetTypeSurchargeDimension,
   CabinetTypeSurchargesResponse,
   CabinetTypeSurchargeDocumentResponse,
 } from './cabinet-type-surcharge';
+export type {
+  CabinetTypeSurchargeLink,
+  CabinetTypeSurchargeLinksResponse,
+  CabinetTypeSurchargeLinkDocumentResponse,
+} from './cabinet-type-surcharge-link';
+export type {
+  CabinetTypeSurchargePrice,
+  CabinetTypeSurchargePricesResponse,
+} from './cabinet-type-surcharge-price';
 export type {
   CabinetVariant,
   CabinetVariantsResponse,

@@ -1,6 +1,19 @@
 const MAX_NAME_LEN = 255;
 const MAX_CODE_LEN = 255;
 
+const DIMENSIONS = new Set(['height', 'width', 'depth']);
+
+function parseDimension(raw: unknown): 'height' | 'width' | 'depth' | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+  if (raw === 'height' || raw === 'width' || raw === 'depth') return raw;
+  if (typeof raw === 'string') {
+    const t = raw.trim().toLowerCase();
+    if (t === '') return null;
+    if (DIMENSIONS.has(t)) return t as 'height' | 'width' | 'depth';
+  }
+  throw createError({ statusCode: 400, statusMessage: 'Invalid dimension' });
+}
+
 export function buildCabinetTypeSurchargeData(body: unknown): Record<string, unknown> {
   if (!body || typeof body !== 'object') {
     throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
@@ -25,41 +38,29 @@ export function buildCabinetTypeSurchargeData(body: unknown): Record<string, unk
 
   const data: Record<string, unknown> = { name, code };
 
-  if ('price' in b) {
-    const p = b.price;
-    if (p === null || p === '') {
-      throw createError({ statusCode: 400, statusMessage: 'Price is required' });
+  if ('dimension' in b) {
+    data.dimension = parseDimension(b.dimension);
+  }
+
+  if ('value' in b) {
+    const p = b.value;
+    if (p === null || p === undefined || p === '') {
+      data.value = null;
     } else if (typeof p === 'number' && Number.isFinite(p)) {
-      data.price = p;
+      data.value = p;
     } else if (typeof p === 'string') {
       const t = p.trim();
       if (t === '') {
-        throw createError({ statusCode: 400, statusMessage: 'Price is required' });
+        data.value = null;
+      } else {
+        const n = Number(t);
+        if (!Number.isFinite(n)) {
+          throw createError({ statusCode: 400, statusMessage: 'Invalid value' });
+        }
+        data.value = n;
       }
-      const n = Number(t);
-      if (!Number.isFinite(n)) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid price' });
-      }
-      data.price = n;
     } else {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid price' });
-    }
-  }
-
-  if ('cabinetTypeId' in b) {
-    const v = b.cabinetTypeId;
-    if (v === null || v === undefined || v === '') {
-      throw createError({ statusCode: 400, statusMessage: 'Cabinet type is required' });
-    } else if (typeof v === 'number' && Number.isFinite(v)) {
-      data.cabinetType = v;
-    } else if (typeof v === 'string' && v.trim() !== '') {
-      const n = Number(v.trim());
-      if (!Number.isFinite(n)) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid cabinetTypeId' });
-      }
-      data.cabinetType = n;
-    } else {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid cabinetTypeId' });
+      throw createError({ statusCode: 400, statusMessage: 'Invalid value' });
     }
   }
 

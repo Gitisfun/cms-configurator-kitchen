@@ -1,19 +1,15 @@
 import type { StrapiListMeta } from './pagination';
-import type { CabinetType } from './cabinet-type';
 
-export type CabinetTypeSurchargeCabinetTypeField =
-  | CabinetType
-  | { data: CabinetType | null }
-  | null
-  | undefined;
+/** When set, the surcharge applies to this cabinet dimension; omit or null for a global/fixed fee. */
+export type CabinetTypeSurchargeDimension = 'height' | 'width' | 'depth';
 
 export interface CabinetTypeSurcharge {
   id: number;
   documentId: string;
   name: string;
   code: string;
-  price: number | string;
-  cabinetType?: CabinetTypeSurchargeCabinetTypeField;
+  dimension?: CabinetTypeSurchargeDimension | null;
+  value?: number | string | null;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;

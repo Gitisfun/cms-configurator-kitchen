@@ -18,7 +18,7 @@
         </div>
         <div v-if="formParentMode === 'category'" class="front-modal__field front-modal__field--spaced">
           <span class="front-modal__label">Category</span>
-          <select v-model="formCategoryIdRaw" class="front-modal__select" :disabled="formSaving || taxonomyLoading">
+          <select v-model="formCategoryIdRaw" class="front-modal__select cms-native-select" :disabled="formSaving || taxonomyLoading">
             <option value="">— Select —</option>
             <option v-for="c in categoryOptions" :key="c.documentId" :value="String(c.id)">
               {{ c.name }}
@@ -27,7 +27,7 @@
         </div>
         <div v-else class="front-modal__field front-modal__field--spaced">
           <span class="front-modal__label">Parent subcategory</span>
-          <select v-model="formParentSubcategoryIdRaw" class="front-modal__select" :disabled="formSaving || taxonomyLoading">
+          <select v-model="formParentSubcategoryIdRaw" class="front-modal__select cms-native-select" :disabled="formSaving || taxonomyLoading">
             <option value="">— Select —</option>
             <option v-for="s in parentSubcategoryOptions" :key="s.documentId" :value="String(s.id)">
               {{ s.name }}
@@ -322,13 +322,17 @@ defineExpose({ openCreate, openEdit });
 .front-modal__select {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.625rem 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  padding-left: 0.75rem;
+  padding-right: var(--cms-select-padding-end);
+  padding-inline-end: var(--cms-select-padding-end);
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
   font-size: var(--paragraph-size-medium);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  background: var(--color-surface-card);
+  background-color: var(--color-surface-card);
 }
 
 .front-modal__select:focus {

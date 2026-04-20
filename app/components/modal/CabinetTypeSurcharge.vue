@@ -10,17 +10,27 @@
     <form id="cabinet-type-surcharge-modal-form" @submit.prevent="submitModal">
       <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
       <BaseInputField v-model="formCode" label="Code" required-mark type="text" name="code" autocomplete="off" maxlength="255" required :disabled="formSaving" spaced />
-      <BaseInputField v-model="formPrice" label="Price" required-mark type="number" name="price" step="0.01" min="0" required :disabled="formSaving" spaced />
 
       <div class="cts-modal__field cts-modal__field--spaced">
-        <span class="cts-modal__label">Cabinet type</span>
-        <select v-model="formCabinetTypeIdRaw" class="cts-modal__select" :disabled="formSaving || typesLoading" required>
-          <option value="">— Select type —</option>
-          <option v-for="t in typeOptions" :key="t.documentId" :value="String(t.id)">
-            {{ t.name }}
-          </option>
+        <span class="cts-modal__label">Dimension</span>
+        <select v-model="formDimensionRaw" class="cts-modal__select cms-native-select" :disabled="formSaving">
+          <option value="">— None —</option>
+          <option value="height">Height</option>
+          <option value="width">Width</option>
+          <option value="depth">Depth</option>
         </select>
       </div>
+
+      <BaseInputField
+        v-model="formValue"
+        label="Value size"
+        type="number"
+        name="value"
+        step="0.01"
+        min="0"
+        :disabled="formSaving"
+        spaced
+      />
 
       <p v-if="formError" class="base-modal__error">{{ formError }}</p>
     </form>
@@ -35,8 +45,6 @@
 
 <script setup lang="ts">
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
-import { extractRelationNumericId } from '../../utils/strapiRelationMeta';
-import { getAllCabinetTypes, type CabinetType } from '../../services/cabinet-types';
 import {
   createCabinetTypeSurcharge,
   updateCabinetTypeSurcharge,
@@ -53,36 +61,20 @@ const modalOpen = ref(false);
 const editing = ref<CabinetTypeSurchargeModalRow | null>(null);
 const formName = ref('');
 const formCode = ref('');
-const formPrice = ref('');
-const formCabinetTypeIdRaw = ref('');
+const formDimensionRaw = ref('');
+const formValue = ref('');
 const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
-
-const typeOptions = ref<CabinetType[]>([]);
-const typesLoading = ref(false);
-
-async function loadTypesIfNeeded() {
-  if (typeOptions.value.length > 0 || typesLoading.value) return;
-  typesLoading.value = true;
-  try {
-    typeOptions.value = (await getAllCabinetTypes(1, 500)).data;
-  } catch {
-    typeOptions.value = [];
-  } finally {
-    typesLoading.value = false;
-  }
-}
 
 function openCreate() {
   editing.value = null;
   formName.value = '';
   formCode.value = '';
-  formPrice.value = '';
-  formCabinetTypeIdRaw.value = '';
+  formDimensionRaw.value = '';
+  formValue.value = '';
   formError.value = '';
   modalOpen.value = true;
-  void loadTypesIfNeeded();
   nextTick(() => nameInputRef.value?.focus());
 }
 
@@ -90,12 +82,10 @@ function openEdit(row: CabinetTypeSurchargeModalRow) {
   editing.value = row;
   formName.value = row.name;
   formCode.value = row.code;
-  formPrice.value = String(row.price ?? '');
-  const tid = extractRelationNumericId(row.cabinetType);
-  formCabinetTypeIdRaw.value = tid != null ? String(tid) : '';
+  formDimensionRaw.value = row.dimension ?? '';
+  formValue.value = row.value != null && row.value !== '' ? String(row.value) : '';
   formError.value = '';
   modalOpen.value = true;
-  void loadTypesIfNeeded();
   nextTick(() => nameInputRef.value?.focus());
 }
 
@@ -116,23 +106,14 @@ async function submitModal() {
     formError.value = 'Please enter a code.';
     return;
   }
-  const rawT = formCabinetTypeIdRaw.value.trim();
-  if (!rawT) {
-    formError.value = 'Please select a cabinet type.';
-    return;
-  }
-  const cabinetTypeId = Number(rawT);
-  if (!Number.isFinite(cabinetTypeId) || cabinetTypeId <= 0) {
-    formError.value = 'Invalid cabinet type.';
-    return;
-  }
 
   formError.value = '';
+  const trimmedValue = formValue.value.trim();
   const body: Record<string, unknown> = {
     name,
     code,
-    price: formPrice.value,
-    cabinetTypeId,
+    dimension: formDimensionRaw.value.trim() || null,
+    value: trimmedValue === '' ? null : formValue.value,
   };
 
   formSaving.value = true;
@@ -197,13 +178,17 @@ defineExpose({ openCreate, openEdit });
 .cts-modal__select {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.625rem 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  padding-left: 0.75rem;
+  padding-right: var(--cms-select-padding-end);
+  padding-inline-end: var(--cms-select-padding-end);
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
   font-size: var(--paragraph-size-medium);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  background: var(--color-surface-card);
+  background-color: var(--color-surface-card);
 }
 
 .cts-modal__select:focus {
