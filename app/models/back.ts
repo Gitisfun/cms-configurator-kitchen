@@ -4,6 +4,7 @@ export interface Back {
   id: number;
   documentId: string;
   name: string;
+  code?: string | null;
   price: number | string | null;
   color: string | null;
   image?: unknown;

@@ -1,5 +1,7 @@
 /**
- * Price for a single price class (0–8) on an import row or surcharge line.
+ * Price for a single price-class column after validation.
+ * Raw JSON may use `{ class, price }`, `{ price }` (class = index), or a number array
+ * `[p0, p1, …]` (class = 0, 1, …).
  */
 export interface CatalogPriceGroup {
   class: number;
@@ -15,6 +17,7 @@ export interface CatalogWidthEntry {
   min: number | null;
   max: number | null;
   LR: boolean;
+  /** After `validateCatalogProductImport`, always `{ class, price }[]` (one entry per column). */
   priceGroups: CatalogPriceGroup[];
 }
 
@@ -32,6 +35,7 @@ export interface CatalogDepthOption {
 export interface CatalogSurcharge {
   name: string;
   code: string;
+  /** Same shapes as width `priceGroups`; normalized after validation. */
   priceGroups: CatalogPriceGroup[];
 }
 

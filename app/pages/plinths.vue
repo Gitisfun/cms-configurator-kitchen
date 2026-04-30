@@ -41,6 +41,7 @@
           <tr>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
+            <th scope="col">Code</th>
             <th scope="col">Price</th>
             <th scope="col">Color</th>
             <th scope="col">Published</th>
@@ -63,6 +64,7 @@
               <span class="base-table__name-text">{{ p.name }}</span>
             </div>
           </td>
+          <td>{{ codeCell(p.code) }}</td>
           <td>{{ formatPrice(p.price) }}</td>
           <td>{{ p.color || '—' }}</td>
           <td>{{ formatDate(p.publishedAt) }}</td>
@@ -107,6 +109,11 @@ function plinthImageSrc(p: Plinth): string | null {
   return extractPlinthImage(p, strapiPublicUrl.value).src;
 }
 
+function codeCell(code: string | null | undefined): string {
+  const t = code?.trim();
+  return t ? t : '—';
+}
+
 const { data, pending, error, refresh } = useFetch<PlinthsResponse>(plinthsListPath, {
   key: computed(() => `plinths-p${page.value}`),
   query: computed(() => plinthsListQuery(page.value, PAGE_SIZE)),
@@ -117,6 +124,8 @@ const plinths = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef: plinthModalRef, openCreateModal, openEditModal } = useModal<Plinth>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onPlinthSaved(payload: { resetPage: boolean }) {
@@ -125,15 +134,18 @@ async function onPlinthSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(p: Plinth) {
-  if (!window.confirm(`Delete plinth "${p.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete plinth?',
+    message: `Delete "${p.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = p.documentId;
   try {
     await deletePlinth(p.documentId);
     await refresh();
+    toast.success('Plinth deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete plinth.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete plinth.'));
   } finally {
     deletingDocumentId.value = null;
   }

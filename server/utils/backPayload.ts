@@ -17,6 +17,18 @@ export function buildBackData(body: unknown): Record<string, unknown> {
 
   const data: Record<string, unknown> = { name };
 
+  if ('code' in b) {
+    const c = b.code;
+    if (c === null || c === undefined || c === '') {
+      data.code = null;
+    } else if (typeof c === 'string') {
+      const t = c.trim();
+      data.code = t === '' ? null : t;
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid code' });
+    }
+  }
+
   if ('price' in b) {
     const p = b.price;
     if (p === null || p === '') {

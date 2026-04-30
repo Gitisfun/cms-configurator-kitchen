@@ -123,6 +123,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<Subcategory>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onSaved(payload: { resetPage: boolean }) {
@@ -131,15 +133,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: Subcategory) {
-  if (!window.confirm(`Delete subcategory "${row.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete subcategory?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deleteSubcategory(row.documentId);
     await refresh();
+    toast.success('Subcategory deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete subcategory.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete subcategory.'));
   } finally {
     deletingDocumentId.value = null;
   }

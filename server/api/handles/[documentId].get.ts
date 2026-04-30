@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
   if (!hasPopulate) {
     sp.set('populate[image]', 'true');
-    sp.set('populate[handlePosition][populate][image]', 'true');
+    sp.set('populate[handlePositions][populate][image]', 'true');
   }
   const qs = sp.toString();
 

@@ -133,6 +133,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<CabinetSeries>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 function productLineLabel(pl: string | null): string {
@@ -164,13 +166,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: CabinetSeries) {
-  if (!window.confirm(`Delete series "${row.name}"? This cannot be undone.`)) return;
+  const ok = await requestConfirm({
+    title: 'Delete series?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deleteCabinetSeries(row.documentId);
     await refresh();
+    toast.success('Cabinet series deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete cabinet series.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete cabinet series.'));
   } finally {
     deletingDocumentId.value = null;
   }

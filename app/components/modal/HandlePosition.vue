@@ -42,6 +42,7 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editingRow = ref<HandlePositionModalRow | null>(null);
@@ -123,10 +124,13 @@ async function submitModal() {
       await createHandlePosition(body);
     }
     formSaving.value = false;
+    toast.success(resetPage ? 'Handle position created.' : 'Handle position updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save handle position.');
+    const msg = getFetchErrorMessage(e, 'Could not save handle position.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

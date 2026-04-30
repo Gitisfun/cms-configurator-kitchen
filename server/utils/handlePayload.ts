@@ -86,20 +86,98 @@ export function buildHandleData(body: unknown): Record<string, unknown> {
     }
   }
 
-  if ('handlePositionId' in b) {
-    const hp = b.handlePositionId;
-    if (hp === null) {
-      data.handlePosition = null;
-    } else if (typeof hp === 'number' && Number.isFinite(hp)) {
-      data.handlePosition = hp;
-    } else if (typeof hp === 'string' && hp.trim() !== '') {
-      const n = Number(hp.trim());
-      if (!Number.isFinite(n)) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid handlePositionId' });
-      }
-      data.handlePosition = n;
+  function optionalStringAttr(bodyKey: string, strapiKey: string) {
+    if (!(bodyKey in b)) return;
+    const v = b[bodyKey];
+    if (v === null || v === undefined || v === '') {
+      data[strapiKey] = null;
+    } else if (typeof v === 'string') {
+      const t = v.trim();
+      data[strapiKey] = t === '' ? null : t;
     } else {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid handlePositionId' });
+      throw createError({ statusCode: 400, statusMessage: `Invalid ${bodyKey}` });
+    }
+  }
+
+  optionalStringAttr('code', 'code');
+  optionalStringAttr('handlePostions', 'handlePostions');
+  optionalStringAttr('height', 'height');
+  optionalStringAttr('description', 'description');
+
+  if ('catalogType' in b) {
+    optionalStringAttr('catalogType', 'catalogType');
+  } else if ('type' in b) {
+    const v = b.type;
+    if (v === null || v === undefined || v === '') {
+      data.catalogType = null;
+    } else if (typeof v === 'string') {
+      const t = v.trim();
+      data.catalogType = t === '' ? null : t;
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid type' });
+    }
+  }
+
+  if ('catalogSubtype' in b) {
+    optionalStringAttr('catalogSubtype', 'catalogSubtype');
+  } else if ('subtype' in b) {
+    const v = b.subtype;
+    if (v === null || v === undefined || v === '') {
+      data.catalogSubtype = null;
+    } else if (typeof v === 'string') {
+      const t = v.trim();
+      data.catalogSubtype = t === '' ? null : t;
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid subtype' });
+    }
+  }
+
+  if ('surchargeDisplay' in b) {
+    optionalStringAttr('surchargeDisplay', 'surchargeDisplay');
+  } else if ('surcharge' in b) {
+    const s = b.surcharge;
+    if (s === null || s === undefined || s === '') {
+      data.surchargeDisplay = null;
+    } else if (typeof s === 'string') {
+      const t = s.trim();
+      data.surchargeDisplay = t === '' ? null : t;
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid surcharge' });
+    }
+  }
+
+  let positionsFromBody = false;
+  if ('handlePositions' in b && typeof b.handlePositions === 'object' && b.handlePositions !== null) {
+    const rel = b.handlePositions as Record<string, unknown>;
+    if ('set' in rel) {
+      positionsFromBody = true;
+      const s = rel.set;
+      if (!Array.isArray(s)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid handlePositions.set' });
+      }
+      const set: string[] = [];
+      for (const item of s) {
+        if (typeof item === 'string' && item.trim() !== '') {
+          set.push(item.trim());
+        }
+      }
+      data.handlePositions = { set };
+    }
+  }
+  if (!positionsFromBody && 'handlePositionDocumentIds' in b) {
+    const hp = b.handlePositionDocumentIds;
+    if (hp === null || hp === undefined) {
+      data.handlePositions = { set: [] };
+    } else if (Array.isArray(hp)) {
+      const set: string[] = [];
+      for (const item of hp) {
+        if (typeof item === 'string' && item.trim() !== '') {
+          set.push(item.trim());
+        }
+      }
+      data.handlePositions = { set };
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid handlePositionDocumentIds' });
     }
   }
 

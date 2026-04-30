@@ -1,4 +1,4 @@
-import type { CatalogProductImport } from '~/types';
+import type { CatalogPriceGroup, CatalogProductGroup, CatalogProductImport } from '~/types';
 
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -21,14 +21,54 @@ function expectBoolean(x: unknown, path: string, errors: string[]): void {
   if (typeof x !== 'boolean') errors.push(`${path}: expected boolean`);
 }
 
-function validatePriceGroup(x: unknown, path: string): string[] {
-  const errors: string[] = [];
-  if (!isRecord(x)) {
-    return [`${path}: expected object`];
+/**
+ * Accepts:
+ * - `[10, 20, …]` — one price per column; `class` becomes the index (0, 1, …)
+ * - `[{ price: 10 }, …]` — optional `class`; if omitted, index is used as class
+ * - `[{ class: 0, price: 10 }, …]` — explicit class per row
+ */
+function parsePriceGroups(raw: unknown, path: string): { ok: true; groups: CatalogPriceGroup[] } | { ok: false; errors: string[] } {
+  if (!Array.isArray(raw)) {
+    return { ok: false, errors: [`${path}: expected array`] };
   }
-  if (!isFiniteNumber(x.class)) errors.push(`${path}.class: expected number`);
-  if (!isFiniteNumber(x.price)) errors.push(`${path}.price: expected number`);
-  return errors;
+  if (raw.length === 0) {
+    return { ok: true, groups: [] };
+  }
+
+  if (raw.every((x) => typeof x === 'number' && Number.isFinite(x))) {
+    return {
+      ok: true,
+      groups: raw.map((price, i) => ({ class: i, price: price as number })),
+    };
+  }
+
+  const groups: CatalogPriceGroup[] = [];
+  const errors: string[] = [];
+
+  for (let i = 0; i < raw.length; i++) {
+    const item = raw[i];
+    const p = `${path}[${i}]`;
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const o = item as Record<string, unknown>;
+      if ('price' in o && isFiniteNumber(o.price)) {
+        const pr = o.price;
+        if ('class' in o && o.class !== null && o.class !== undefined) {
+          if (!isFiniteNumber(o.class)) {
+            errors.push(`${p}.class: expected number`);
+            continue;
+          }
+          groups.push({ class: o.class as number, price: pr });
+        } else {
+          groups.push({ class: i, price: pr });
+        }
+        continue;
+      }
+    }
+    errors.push(`${p}: expected a finite number or an object { class?: number, price: number }`);
+  }
+
+  if (errors.length) return { ok: false, errors };
+  return { ok: true, groups };
 }
 
 function validateWidthEntry(x: unknown, path: string): string[] {
@@ -41,13 +81,8 @@ function validateWidthEntry(x: unknown, path: string): string[] {
   nullableNumber(x.min, `${path}.min`, errors);
   nullableNumber(x.max, `${path}.max`, errors);
   expectBoolean(x.LR, `${path}.LR`, errors);
-  if (!Array.isArray(x.priceGroups)) {
-    errors.push(`${path}.priceGroups: expected array`);
-  } else {
-    x.priceGroups.forEach((pg, i) => {
-      errors.push(...validatePriceGroup(pg, `${path}.priceGroups[${i}]`));
-    });
-  }
+  const pg = parsePriceGroups(x.priceGroups, `${path}.priceGroups`);
+  if (!pg.ok) errors.push(...pg.errors);
   return errors;
 }
 
@@ -68,14 +103,24 @@ function validateSurcharge(x: unknown, path: string): string[] {
   }
   expectString(x.name, `${path}.name`, errors);
   expectString(x.code, `${path}.code`, errors);
-  if (!Array.isArray(x.priceGroups)) {
-    errors.push(`${path}.priceGroups: expected array`);
-  } else {
-    x.priceGroups.forEach((pg, i) => {
-      errors.push(...validatePriceGroup(pg, `${path}.priceGroups[${i}]`));
-    });
-  }
+  const pg = parsePriceGroups(x.priceGroups, `${path}.priceGroups`);
+  if (!pg.ok) errors.push(...pg.errors);
   return errors;
+}
+
+/** Replace numeric-only / implicit-class shapes with `{ class, price }[]` for the importer. */
+function normalizeProductGroup(g: CatalogProductGroup): CatalogProductGroup {
+  return {
+    ...g,
+    width: g.width.map((w) => {
+      const r = parsePriceGroups(w.priceGroups as unknown, 'width.priceGroups');
+      return { ...w, priceGroups: r.ok ? r.groups : w.priceGroups };
+    }),
+    surcharges: g.surcharges.map((s) => {
+      const r = parsePriceGroups(s.priceGroups as unknown, 'surcharges.priceGroups');
+      return { ...s, priceGroups: r.ok ? r.groups : s.priceGroups };
+    }),
+  };
 }
 
 function validateProductGroup(x: unknown, path: string): string[] {
@@ -144,7 +189,8 @@ export function validateCatalogProductImport(value: unknown): ValidateCatalogImp
   if (errors.length > 0) {
     return { ok: false, errors };
   }
-  return { ok: true, data: value as CatalogProductImport };
+  const raw = value as CatalogProductImport;
+  return { ok: true, data: raw.map(normalizeProductGroup) };
 }
 
 export type CatalogImportPipelineResult =

@@ -74,6 +74,8 @@ const emit = defineEmits<{
   linked: [];
 }>();
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const cabinetTypeDocumentId = ref<string | null>(null);
 const cabinetTypeLabel = ref('');
@@ -124,10 +126,11 @@ async function linkOption(opt: DepthOption) {
     await updateDepthOption(opt.documentId, {
       connectCabinetTypeDocumentIds: [ctDoc],
     });
+    toast.success('Depth option linked.');
     modalOpen.value = false;
     emit('linked');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Could not link depth option.'));
+    toast.danger(getFetchErrorMessage(e, 'Could not link depth option.'));
   } finally {
     linkingDocumentId.value = null;
   }

@@ -120,6 +120,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<HandlePosition>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onSaved(payload: { resetPage: boolean }) {
@@ -128,15 +130,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: HandlePosition) {
-  if (!window.confirm(`Delete handle position "${row.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete handle position?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deleteHandlePosition(row.documentId);
     await refresh();
+    toast.success('Handle position deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete handle position.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete handle position.'));
   } finally {
     deletingDocumentId.value = null;
   }

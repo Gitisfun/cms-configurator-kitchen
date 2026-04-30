@@ -64,6 +64,7 @@ const materialItems = [
   { to: '/backs', icon: 'lucide:panel-bottom', text: 'Backs' },
   { to: '/handles', icon: 'lucide:grip-vertical', text: 'Handles' },
   { to: '/plinths', icon: 'lucide:stretch-horizontal', text: 'Plinths' },
+  { to: '/worktops', icon: 'lucide:rectangle-horizontal', text: 'Worktops' },
 ];
 
 const otherItems = [

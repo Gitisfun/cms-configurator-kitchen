@@ -3,6 +3,7 @@
     <BaseModal v-model="modalOpen" title-id="plinth-modal-title" :title="editingPlinth ? 'Edit plinth' : 'New plinth'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="plinth-modal-form" @submit.prevent="submitModal">
         <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
+        <BaseInputField v-model="formCode" label="Code" spaced type="text" name="code" autocomplete="off" maxlength="255" placeholder="Optional" :disabled="formSaving" />
         <BaseInputField v-model="formPrice" label="Price" spaced type="text" name="price" inputmode="decimal" placeholder="Optional" :disabled="formSaving" />
         <BaseInputField v-model="formColor" label="Color" spaced type="text" name="color" maxlength="255" placeholder="Optional" :disabled="formSaving" />
         <BaseImageUpload
@@ -40,10 +41,12 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editingPlinth = ref<PlinthModalRow | null>(null);
 const formName = ref('');
+const formCode = ref('');
 const formPrice = ref('');
 const formColor = ref('');
 const formError = ref('');
@@ -72,6 +75,7 @@ function onImageFieldError(message: string) {
 function openCreate() {
   editingPlinth.value = null;
   formName.value = '';
+  formCode.value = '';
   formPrice.value = '';
   formColor.value = '';
   formError.value = '';
@@ -93,6 +97,7 @@ function priceToFormString(price: PlinthModalRow['price']): string {
 function openEdit(p: PlinthModalRow) {
   editingPlinth.value = p;
   formName.value = p.name;
+  formCode.value = p.code?.trim() ? p.code : '';
   formPrice.value = priceToFormString(p.price);
   formColor.value = p.color ?? '';
   formError.value = '';
@@ -107,6 +112,7 @@ function closeModal() {
   modalOpen.value = false;
   editingPlinth.value = null;
   formName.value = '';
+  formCode.value = '';
   formPrice.value = '';
   formColor.value = '';
   formError.value = '';
@@ -119,7 +125,10 @@ function buildSubmitBody(): Record<string, unknown> | null {
     return null;
   }
   formError.value = '';
-  const body: Record<string, unknown> = { name };
+  const body: Record<string, unknown> = {
+    name,
+    code: formCode.value.trim() || null,
+  };
   const priceTrim = formPrice.value.trim();
 
   if (editingPlinth.value) {
@@ -161,16 +170,20 @@ async function submitModal() {
   const resetPage = editingPlinth.value === null;
   formSaving.value = true;
   try {
+    const wasEdit = editingPlinth.value !== null;
     if (editingPlinth.value) {
       await updatePlinth(editingPlinth.value.documentId, body);
     } else {
       await createPlinth(body);
     }
     formSaving.value = false;
+    toast.success(wasEdit ? 'Plinth updated.' : 'Plinth created.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save plinth.');
+    const msg = getFetchErrorMessage(e, 'Could not save plinth.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

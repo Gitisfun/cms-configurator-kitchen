@@ -41,6 +41,7 @@
           <tr>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
+            <th scope="col">Code</th>
             <th scope="col">Color</th>
             <th scope="col">Price</th>
             <th scope="col">Published</th>
@@ -63,6 +64,7 @@
               <span class="base-table__name-text">{{ b.name }}</span>
             </div>
           </td>
+          <td>{{ codeCell(b.code) }}</td>
           <td>{{ colorLabel(b.color) }}</td>
           <td>{{ formatPrice(b.price) }}</td>
           <td>{{ formatDate(b.publishedAt) }}</td>
@@ -113,6 +115,11 @@ function colorLabel(color: string | null): string {
   return t;
 }
 
+function codeCell(code: string | null | undefined): string {
+  const t = code?.trim();
+  return t ? t : '—';
+}
+
 const { data, pending, error, refresh } = useFetch<BacksResponse>(backsListPath, {
   key: computed(() => `backs-p${page.value}`),
   query: computed(() => backsListQuery(page.value, PAGE_SIZE)),
@@ -123,6 +130,8 @@ const backs = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef: backModalRef, openCreateModal, openEditModal } = useModal<Back>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onBackSaved(payload: { resetPage: boolean }) {
@@ -131,15 +140,18 @@ async function onBackSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(b: Back) {
-  if (!window.confirm(`Delete back "${b.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete back?',
+    message: `Delete "${b.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = b.documentId;
   try {
     await deleteBack(b.documentId);
     await refresh();
+    toast.success('Back deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete back.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete back.'));
   } finally {
     deletingDocumentId.value = null;
   }

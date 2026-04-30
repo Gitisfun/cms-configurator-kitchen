@@ -95,6 +95,8 @@ const emit = defineEmits<{
   uploaded: [payload: { count: number }];
 }>();
 
+const toast = useToast();
+
 const fileInput = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
 const uploading = ref(false);
@@ -205,10 +207,16 @@ async function uploadFiles() {
 
   if (failCount === 0) {
     successMessage.value = `${successCount} ${successCount === 1 ? 'file' : 'files'} uploaded successfully.`;
+    toast.success(successMessage.value);
     emit('uploaded', { count: successCount });
     setTimeout(() => clearStaged(), 1500);
   } else {
     errorMessage.value = `${failCount} ${failCount === 1 ? 'file' : 'files'} failed to upload. You can retry.`;
+    if (successCount > 0) {
+      toast.info(`${successCount} uploaded, ${failCount} failed.`);
+    } else {
+      toast.danger(errorMessage.value);
+    }
   }
 }
 

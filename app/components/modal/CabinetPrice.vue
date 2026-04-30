@@ -26,6 +26,8 @@ const emit = defineEmits<{
   saved: [payload: { resetPage: boolean }];
 }>();
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const editing = ref<CabinetPriceModalRow | null>(null);
 const formPrice = ref('');
@@ -95,10 +97,13 @@ async function submitModal() {
     }
     const resetPage = editing.value === null;
     formSaving.value = false;
+    toast.success(resetPage ? 'Cabinet price created.' : 'Cabinet price updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save cabinet price.');
+    const msg = getFetchErrorMessage(e, 'Could not save cabinet price.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

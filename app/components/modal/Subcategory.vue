@@ -81,6 +81,7 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editingRow = ref<SubcategoryModalRow | null>(null);
@@ -268,10 +269,13 @@ async function submitModal() {
       await createSubcategory(body);
     }
     formSaving.value = false;
+    toast.success(resetPage ? 'Subcategory created.' : 'Subcategory updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save subcategory.');
+    const msg = getFetchErrorMessage(e, 'Could not save subcategory.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

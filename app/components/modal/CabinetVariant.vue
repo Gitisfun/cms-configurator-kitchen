@@ -53,6 +53,8 @@ const emit = defineEmits<{
   saved: [payload: { resetPage: boolean }];
 }>();
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const editing = ref<CabinetVariantModalRow | null>(null);
 const formOrderNumber = ref('');
@@ -172,10 +174,13 @@ async function submitModal() {
     }
     const resetPage = editing.value === null;
     formSaving.value = false;
+    toast.success(resetPage ? 'Cabinet variant created.' : 'Cabinet variant updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save cabinet variant.');
+    const msg = getFetchErrorMessage(e, 'Could not save cabinet variant.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

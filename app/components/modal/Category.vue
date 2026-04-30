@@ -23,6 +23,8 @@ const emit = defineEmits<{
   saved: [payload: { resetPage: boolean }];
 }>();
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const editingCategory = ref<CategoryModalRow | null>(null);
 const formName = ref('');
@@ -70,10 +72,13 @@ async function submitModal() {
     }
     const resetPage = editingCategory.value === null;
     formSaving.value = false;
+    toast.success(resetPage ? 'Category created.' : 'Category updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save category.');
+    const msg = getFetchErrorMessage(e, 'Could not save category.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

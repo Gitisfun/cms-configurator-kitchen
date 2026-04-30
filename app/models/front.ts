@@ -12,6 +12,7 @@ export interface Front {
   id: number;
   documentId: string;
   name: string;
+  code?: string | null;
   description: string | null;
   image?: unknown;
   priceClass?: FrontPriceClassField;

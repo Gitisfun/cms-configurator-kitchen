@@ -134,6 +134,8 @@ type OpenEditArgs = {
   priceClasses: PriceClass[];
 };
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const editing = ref<CabinetTypeSurchargeLink | null>(null);
 const cabinetTypeId = ref<number | null>(null);
@@ -278,10 +280,13 @@ async function submitModal() {
       });
     }
     formSaving.value = false;
+    toast.success(editing.value ? 'Surcharge link updated.' : 'Surcharge linked.');
     closeModal();
     emit('saved');
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save surcharge link.');
+    const msg = getFetchErrorMessage(e, 'Could not save surcharge link.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

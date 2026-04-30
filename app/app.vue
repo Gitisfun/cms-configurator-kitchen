@@ -4,6 +4,8 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
+    <CmsConfirmDialog />
+    <CmsToastHost />
   </div>
 </template>
 

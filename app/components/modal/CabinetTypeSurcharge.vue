@@ -57,6 +57,8 @@ const emit = defineEmits<{
   saved: [payload: { resetPage: boolean }];
 }>();
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const editing = ref<CabinetTypeSurchargeModalRow | null>(null);
 const formName = ref('');
@@ -125,10 +127,13 @@ async function submitModal() {
     }
     const resetPage = editing.value === null;
     formSaving.value = false;
+    toast.success(resetPage ? 'Type surcharge created.' : 'Type surcharge updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save surcharge.');
+    const msg = getFetchErrorMessage(e, 'Could not save surcharge.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

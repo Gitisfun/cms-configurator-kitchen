@@ -131,6 +131,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<CabinetTypeSurcharge>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onSaved(payload: { resetPage: boolean }) {
@@ -139,13 +141,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: CabinetTypeSurcharge) {
-  if (!window.confirm(`Delete surcharge "${row.name}"? This cannot be undone.`)) return;
+  const ok = await requestConfirm({
+    title: 'Delete surcharge?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deleteCabinetTypeSurcharge(row.documentId);
     await refresh();
+    toast.success('Type surcharge deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete surcharge.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete surcharge.'));
   } finally {
     deletingDocumentId.value = null;
   }

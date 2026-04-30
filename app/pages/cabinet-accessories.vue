@@ -132,6 +132,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<CabinetAccessory>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onSaved(payload: { resetPage: boolean }) {
@@ -140,13 +142,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: CabinetAccessory) {
-  if (!window.confirm(`Delete accessory "${row.name}"? This cannot be undone.`)) return;
+  const ok = await requestConfirm({
+    title: 'Delete accessory?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deleteCabinetAccessory(row.documentId);
     await refresh();
+    toast.success('Accessory deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete accessory.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete accessory.'));
   } finally {
     deletingDocumentId.value = null;
   }

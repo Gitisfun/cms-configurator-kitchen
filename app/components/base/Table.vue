@@ -91,12 +91,16 @@
   overflow: hidden;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .base-table-wrap .base-table__thumb {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 

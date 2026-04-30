@@ -98,6 +98,8 @@ const categories = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef: categoryModalRef, openCreateModal, openEditModal } = useModal<Category>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onCategorySaved(payload: { resetPage: boolean }) {
@@ -106,15 +108,18 @@ async function onCategorySaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(cat: Category) {
-  if (!window.confirm(`Delete category "${cat.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete category?',
+    message: `Delete "${cat.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = cat.documentId;
   try {
     await deleteCategory(cat.documentId);
     await refresh();
+    toast.success('Category deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete category.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete category.'));
   } finally {
     deletingDocumentId.value = null;
   }

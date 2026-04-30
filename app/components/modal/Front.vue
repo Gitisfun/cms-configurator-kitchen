@@ -3,6 +3,7 @@
     <BaseModal v-model="modalOpen" title-id="front-modal-title" :title="editingFront ? 'Edit front' : 'New front'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="front-modal-form" @submit.prevent="submitModal">
         <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
+        <BaseInputField v-model="formCode" label="Code" spaced type="text" name="code" autocomplete="off" maxlength="255" placeholder="Optional" :disabled="formSaving" />
         <BaseInputField label="Description" spaced>
           <textarea
             v-model="formDescription"
@@ -61,10 +62,12 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editingFront = ref<FrontModalRow | null>(null);
 const formName = ref('');
+const formCode = ref('');
 const formDescription = ref('');
 const formPriceClassIdRaw = ref('');
 const formError = ref('');
@@ -111,6 +114,7 @@ async function loadPriceClassesIfNeeded() {
 function openCreate() {
   editingFront.value = null;
   formName.value = '';
+  formCode.value = '';
   formDescription.value = '';
   formPriceClassIdRaw.value = '';
   formError.value = '';
@@ -123,6 +127,7 @@ function openCreate() {
 function openEdit(row: FrontModalRow) {
   editingFront.value = row;
   formName.value = row.name;
+  formCode.value = row.code?.trim() ? row.code : '';
   formDescription.value = row.description ?? '';
   const pc = extractFrontPriceClass(row);
   formPriceClassIdRaw.value = pc.id != null ? String(pc.id) : '';
@@ -139,6 +144,7 @@ function closeModal() {
   modalOpen.value = false;
   editingFront.value = null;
   formName.value = '';
+  formCode.value = '';
   formDescription.value = '';
   formPriceClassIdRaw.value = '';
   formError.value = '';
@@ -154,6 +160,7 @@ function buildSubmitBody(): Record<string, unknown> | null {
   const desc = String(formDescription.value ?? '').trim();
   const body: Record<string, unknown> = {
     name,
+    code: String(formCode.value ?? '').trim() || null,
     description: desc || null,
   };
 
@@ -189,10 +196,13 @@ async function submitModal() {
       await createFront(body);
     }
     formSaving.value = false;
+    toast.success(resetPage ? 'Front created.' : 'Front updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save front.');
+    const msg = getFetchErrorMessage(e, 'Could not save front.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

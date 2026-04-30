@@ -79,4 +79,5 @@ export type {
   SubcategoryParentRow,
 } from './subcategory';
 export type { PriceClass, PriceClassDocumentResponse, PriceClassesResponse } from './price-class';
+export type { Worktop, WorktopDocumentResponse, WorktopsResponse } from './worktop';
 export type { StrapiFile, StrapiFileFormat, StrapiMetaPagination } from './strapi-upload';

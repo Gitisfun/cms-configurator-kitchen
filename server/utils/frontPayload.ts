@@ -1,4 +1,5 @@
 const MAX_NAME_LEN = 255;
+const MAX_CODE_LEN = 255;
 const MAX_DESCRIPTION_LEN = 10_000;
 
 /**
@@ -23,6 +24,24 @@ export function buildFrontData(body: unknown): Record<string, unknown> {
   }
 
   const data: Record<string, unknown> = { name };
+
+  if ('code' in b) {
+    const c = b.code;
+    if (c === null || c === undefined || c === '') {
+      data.code = null;
+    } else if (typeof c === 'string') {
+      const t = c.trim();
+      if (t.length > MAX_CODE_LEN) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Code must be at most ${MAX_CODE_LEN} characters`,
+        });
+      }
+      data.code = t === '' ? null : t;
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid code' });
+    }
+  }
 
   if ('description' in b) {
     const desc = b.description;

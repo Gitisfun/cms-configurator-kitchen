@@ -76,6 +76,8 @@ const emit = defineEmits<{
   saved: [payload: { resetPage: boolean }];
 }>();
 
+const toast = useToast();
+
 const modalOpen = ref(false);
 const editing = ref<CabinetSeriesModalRow | null>(null);
 const formName = ref('');
@@ -222,10 +224,13 @@ async function submitModal() {
     }
     const resetPage = editing.value === null;
     formSaving.value = false;
+    toast.success(resetPage ? 'Cabinet series created.' : 'Cabinet series updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save cabinet series.');
+    const msg = getFetchErrorMessage(e, 'Could not save cabinet series.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

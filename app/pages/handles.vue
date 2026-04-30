@@ -1,6 +1,6 @@
 <template>
   <div>
-    <CmsPageHeader title="Handles" description="Manage handles with optional image, color, price, sort position, hold flag, and linked handle position.">
+    <CmsPageHeader title="Handles" description="Manage handles with optional image, color, price, sort position, hold flag, and linked handle positions.">
       <template #actions>
         <BaseButton type="button" @click="openCreateModal">
           <Icon name="lucide:plus" class="base-btn__icon" />
@@ -25,7 +25,7 @@
           <Icon name="lucide:grip-vertical" />
         </div>
         <h3 class="base-panel__empty-title">No handles yet</h3>
-        <p class="base-panel__empty-desc">Create Strapi &ldquo;Handle&rdquo; entries and link them to a handle position when needed.</p>
+        <p class="base-panel__empty-desc">Create Strapi &ldquo;Handle&rdquo; entries and link them to handle positions when needed.</p>
         <BaseButton type="button" @click="openCreateModal">
           <Icon name="lucide:plus" class="base-btn__icon" />
           Create handle
@@ -41,7 +41,8 @@
           <tr>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
-            <th scope="col">Handle position</th>
+            <th scope="col">Code</th>
+            <th scope="col">Handle positions</th>
             <th scope="col">Position</th>
             <th scope="col">Has hold</th>
             <th scope="col">Color</th>
@@ -66,6 +67,7 @@
               <span class="base-table__name-text">{{ h.name }}</span>
             </div>
           </td>
+          <td>{{ codeCell(h.code) }}</td>
           <td>{{ handlePositionLabel(h) }}</td>
           <td>{{ h.position ?? 0 }}</td>
           <td>{{ h.hasHold ? 'Yes' : 'No' }}</td>
@@ -100,7 +102,7 @@
 <script setup lang="ts">
 import { formatDateTime as formatDate, formatPriceEur as formatPrice } from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
-import { extractHandlePositionRelation } from '../utils/handlePositionRelation';
+import { extractHandlePositionsRelations } from '../utils/handlePositionRelation';
 import { extractPlinthImage } from '../utils/plinthImage';
 import { useStrapiPublicUrl } from '../utils/strapiPublicUrl';
 import { defaultHandlesResponse, deleteHandle, handlesListPath, handlesListQuery, type Handle, type HandlesResponse } from '../services/handles';
@@ -120,10 +122,17 @@ function colorLabel(color: string | null): string {
   return t;
 }
 
+function codeCell(code: string | null | undefined): string {
+  const t = code?.trim();
+  return t ? t : '—';
+}
+
 function handlePositionLabel(h: Handle): string {
-  const hp = extractHandlePositionRelation(h);
-  if (!hp.name) return '—';
-  return hp.name;
+  const names = extractHandlePositionsRelations(h)
+    .map((hp) => hp.name)
+    .filter((n): n is string => typeof n === 'string' && n.trim() !== '');
+  if (!names.length) return '—';
+  return names.join(', ');
 }
 
 const { data, pending, error, refresh } = useFetch<HandlesResponse>(handlesListPath, {
@@ -136,6 +145,8 @@ const handles = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef: handleModalRef, openCreateModal, openEditModal } = useModal<Handle>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onHandleSaved(payload: { resetPage: boolean }) {
@@ -144,15 +155,18 @@ async function onHandleSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(h: Handle) {
-  if (!window.confirm(`Delete handle "${h.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete handle?',
+    message: `Delete "${h.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = h.documentId;
   try {
     await deleteHandle(h.documentId);
     await refresh();
+    toast.success('Handle deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete handle.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete handle.'));
   } finally {
     deletingDocumentId.value = null;
   }

@@ -134,6 +134,8 @@ const selectedIds = ref<number[]>([]);
 const deleting = ref(false);
 const deleteError = ref('');
 const selectAllInputRef = ref<HTMLInputElement | null>(null);
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 
 const { data: mediaPage, status: fetchStatus, error: fetchError, refresh } = useFetch<MediaFilesPage>('/api/upload/files', {
   key: computed(() => `media-library-p${page.value}`),
@@ -203,7 +205,11 @@ async function deleteSelected() {
   const ids = [...selectedIds.value];
   if (ids.length === 0) return;
   const n = ids.length;
-  if (!window.confirm(`Delete ${n} file${n === 1 ? '' : 's'}? This cannot be undone.`)) return;
+  const ok = await requestConfirm({
+    title: n === 1 ? 'Delete file?' : 'Delete files?',
+    message: `Delete ${n} file${n === 1 ? '' : 's'}? This cannot be undone.`,
+  });
+  if (!ok) return;
 
   deleting.value = true;
   deleteError.value = '';
@@ -216,6 +222,9 @@ async function deleteSelected() {
       failed === n
         ? 'Could not delete the selected files.'
         : `${failed} of ${n} file(s) could not be deleted.`;
+    toast.danger(deleteError.value);
+  } else {
+    toast.success(n === 1 ? 'File deleted.' : `${n} files deleted.`);
   }
 
   selectedIds.value = [];

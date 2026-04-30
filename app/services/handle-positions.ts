@@ -1,4 +1,5 @@
 import type {
+  HandlePosition,
   HandlePositionDocumentResponse,
   HandlePositionsResponse,
 } from '../models/handle-position';
@@ -36,6 +37,20 @@ export function getAllHandlePositions(page: number, pageSize: number) {
   return $fetch<HandlePositionsResponse>(handlePositionsListPath, {
     query: handlePositionsListQuery(page, pageSize),
   });
+}
+
+/** Fetches every handle position by paging until all are loaded (for matching and duplicate checks). */
+export async function fetchAllHandlePositions(pageSize = 200): Promise<HandlePosition[]> {
+  const out: HandlePosition[] = [];
+  let page = 1;
+  let pageCount = 1;
+  do {
+    const res = await getAllHandlePositions(page, pageSize);
+    out.push(...res.data);
+    pageCount = res.meta.pagination.pageCount;
+    page += 1;
+  } while (page <= pageCount);
+  return out;
 }
 
 export function getHandlePositionById(documentId: string) {

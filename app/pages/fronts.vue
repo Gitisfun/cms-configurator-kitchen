@@ -41,6 +41,7 @@
           <tr>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
+            <th scope="col">Code</th>
             <th scope="col">Price class</th>
             <th scope="col">Description</th>
             <th scope="col">Published</th>
@@ -63,6 +64,7 @@
               <span class="base-table__name-text">{{ f.name }}</span>
             </div>
           </td>
+          <td>{{ codeCell(f.code) }}</td>
           <td>{{ priceClassLabel(f) }}</td>
           <td class="fronts-page__desc">{{ descriptionPreview(f.description) }}</td>
           <td>{{ formatDate(f.publishedAt) }}</td>
@@ -115,6 +117,11 @@ function priceClassLabel(f: Front): string {
   return pc.name;
 }
 
+function codeCell(code: string | null | undefined): string {
+  const t = code?.trim();
+  return t ? t : '—';
+}
+
 function descriptionPreview(text: string | null, max = 72): string {
   if (!text) return '—';
   const t = text.trim();
@@ -133,6 +140,8 @@ const fronts = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef: frontModalRef, openCreateModal, openEditModal } = useModal<Front>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onFrontSaved(payload: { resetPage: boolean }) {
@@ -141,15 +150,18 @@ async function onFrontSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(f: Front) {
-  if (!window.confirm(`Delete front "${f.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete front?',
+    message: `Delete "${f.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = f.documentId;
   try {
     await deleteFront(f.documentId);
     await refresh();
+    toast.success('Front deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete front.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete front.'));
   } finally {
     deletingDocumentId.value = null;
   }

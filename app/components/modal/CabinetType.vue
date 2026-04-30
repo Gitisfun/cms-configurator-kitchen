@@ -103,6 +103,8 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editing = ref<CabinetTypeModalRow | null>(null);
@@ -190,7 +192,12 @@ async function onDepthOptionLinked() {
 }
 
 async function confirmUnlinkDepthOption(opt: DepthOption) {
-  if (!window.confirm(`Unlink depth option "${opt.name}" from this cabinet type? The row stays in the library.`)) return;
+  const ok = await requestConfirm({
+    title: 'Unlink depth option?',
+    message: `Unlink depth option "${opt.name}" from this cabinet type? The row stays in the library.`,
+    confirmLabel: 'Unlink',
+  });
+  if (!ok) return;
   if (!editing.value) return;
   deletingDepthDocumentId.value = opt.documentId;
   try {
@@ -199,7 +206,7 @@ async function confirmUnlinkDepthOption(opt: DepthOption) {
     });
     await refreshEditingCabinetTypeFromServer();
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to unlink depth option.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to unlink depth option.'));
   } finally {
     deletingDepthDocumentId.value = null;
   }
@@ -285,10 +292,13 @@ async function submitModal() {
     }
     const resetPage = editing.value === null;
     formSaving.value = false;
+    toast.success(resetPage ? 'Cabinet type created.' : 'Cabinet type updated.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save cabinet type.');
+    const msg = getFetchErrorMessage(e, 'Could not save cabinet type.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

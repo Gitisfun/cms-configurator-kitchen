@@ -3,6 +3,7 @@
     <BaseModal v-model="modalOpen" title-id="back-modal-title" :title="editingBack ? 'Edit back' : 'New back'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="back-modal-form" @submit.prevent="submitModal">
         <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
+        <BaseInputField v-model="formCode" label="Code" spaced type="text" name="code" autocomplete="off" maxlength="255" placeholder="Optional" :disabled="formSaving" />
         <BaseImageUpload
           ref="imageFieldRef"
           v-model:image-id="formImageId"
@@ -42,10 +43,12 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editingBack = ref<BackModalRow | null>(null);
 const formName = ref('');
+const formCode = ref('');
 const formPrice = ref('');
 const formColor = ref(DEFAULT_COLOR);
 const formError = ref('');
@@ -74,6 +77,7 @@ function onImageFieldError(message: string) {
 function openCreate() {
   editingBack.value = null;
   formName.value = '';
+  formCode.value = '';
   formPrice.value = '';
   formColor.value = DEFAULT_COLOR;
   formError.value = '';
@@ -95,6 +99,7 @@ function priceToFormString(price: BackModalRow['price']): string {
 function openEdit(row: BackModalRow) {
   editingBack.value = row;
   formName.value = row.name;
+  formCode.value = row.code?.trim() ? row.code : '';
   formPrice.value = priceToFormString(row.price);
   formColor.value = row.color?.trim() ? row.color : DEFAULT_COLOR;
   formError.value = '';
@@ -123,6 +128,7 @@ function buildSubmitBody(): Record<string, unknown> | null {
   formError.value = '';
   const body: Record<string, unknown> = {
     name,
+    code: String(formCode.value ?? '').trim() || null,
     color: String(formColor.value ?? '').trim() || DEFAULT_COLOR,
   };
   const priceTrim = String(formPrice.value ?? '').trim();
@@ -161,16 +167,20 @@ async function submitModal() {
   const resetPage = editingBack.value === null;
   formSaving.value = true;
   try {
+    const wasEdit = editingBack.value !== null;
     if (editingBack.value) {
       await updateBack(editingBack.value.documentId, body);
     } else {
       await createBack(body);
     }
     formSaving.value = false;
+    toast.success(wasEdit ? 'Back updated.' : 'Back created.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save back.');
+    const msg = getFetchErrorMessage(e, 'Could not save back.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }

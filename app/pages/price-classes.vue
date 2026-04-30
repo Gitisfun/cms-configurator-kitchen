@@ -107,6 +107,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef: priceClassModalRef, openCreateModal, openEditModal } = useModal<PriceClass>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 async function onSaved(payload: { resetPage: boolean }) {
@@ -115,15 +117,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: PriceClass) {
-  if (!window.confirm(`Delete price class "${row.name}"? This cannot be undone.`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: 'Delete price class?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deletePriceClass(row.documentId);
     await refresh();
+    toast.success('Price class deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete price class.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete price class.'));
   } finally {
     deletingDocumentId.value = null;
   }

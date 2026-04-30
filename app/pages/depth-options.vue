@@ -120,6 +120,8 @@ const rows = computed(() => data.value?.data ?? []);
 const pagination = computed(() => data.value?.meta?.pagination);
 
 const { modalRef, openCreateModal, openEditModal } = useModal<DepthOption>();
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
 
 function goToProducts() {
@@ -136,13 +138,18 @@ async function onSaved(payload: { resetPage: boolean }) {
 }
 
 async function confirmDelete(row: DepthOption) {
-  if (!window.confirm(`Delete depth option "${row.name}"? This cannot be undone.`)) return;
+  const ok = await requestConfirm({
+    title: 'Delete depth option?',
+    message: `Delete "${row.name}"? This cannot be undone.`,
+  });
+  if (!ok) return;
   deletingDocumentId.value = row.documentId;
   try {
     await deleteDepthOption(row.documentId);
     await refresh();
+    toast.success('Depth option deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Failed to delete depth option.'));
+    toast.danger(getFetchErrorMessage(e, 'Failed to delete depth option.'));
   } finally {
     deletingDocumentId.value = null;
   }

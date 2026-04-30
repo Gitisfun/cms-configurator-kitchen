@@ -3,6 +3,7 @@
     <BaseModal v-model="modalOpen" title-id="handle-modal-title" :title="editingHandle ? 'Edit handle' : 'New handle'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="handle-modal-form" @submit.prevent="submitModal">
         <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
+        <BaseInputField v-model="formCode" label="Code" spaced type="text" name="code" autocomplete="off" maxlength="255" placeholder="Optional" :disabled="formSaving" />
         <BaseImageUpload
           ref="imageFieldRef"
           v-model:image-id="formImageId"
@@ -13,13 +14,15 @@
           @error="onImageFieldError"
         />
         <div class="front-modal__field front-modal__field--spaced">
-          <span class="front-modal__label"> Handle position </span>
-          <select v-model="formHandlePositionIdRaw" class="front-modal__select cms-native-select" :disabled="formSaving || handlePositionsLoading">
-            <option value="">— None —</option>
-            <option v-for="hp in handlePositionOptions" :key="hp.documentId" :value="String(hp.id)">
-              {{ hp.name }}
-            </option>
-          </select>
+          <span class="front-modal__label"> Handle positions </span>
+          <ul class="handle-positions-checkboxes" :class="{ 'handle-positions-checkboxes--disabled': formSaving || handlePositionsLoading }">
+            <li v-for="hp in handlePositionOptions" :key="hp.documentId">
+              <label class="handle-pos-checkbox">
+                <input v-model="formHandlePositionDocumentIds" type="checkbox" class="handle-pos-checkbox__input" :value="hp.documentId" :disabled="formSaving || handlePositionsLoading" />
+                <span class="handle-pos-checkbox__label">{{ hp.name }}</span>
+              </label>
+            </li>
+          </ul>
           <p v-if="handlePositionLoadError" class="base-modal__error">{{ handlePositionLoadError }}</p>
         </div>
         <BaseInputField v-model="formColor" label="Color" spaced type="text" name="color" maxlength="255" placeholder="Optional" :disabled="formSaving" />
@@ -46,7 +49,7 @@
 
 <script setup lang="ts">
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
-import { extractHandlePositionRelation } from '../../utils/handlePositionRelation';
+import { extractHandlePositionsRelations } from '../../utils/handlePositionRelation';
 import { extractPlinthImage } from '../../utils/plinthImage';
 import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import {
@@ -64,15 +67,17 @@ const emit = defineEmits<{
 }>();
 
 const strapiPublicUrl = useStrapiPublicUrl();
+const toast = useToast();
 
 const modalOpen = ref(false);
 const editingHandle = ref<HandleModalRow | null>(null);
 const formName = ref('');
+const formCode = ref('');
 const formPrice = ref('');
 const formColor = ref('');
 const formPosition = ref('0');
 const formHasHold = ref(false);
-const formHandlePositionIdRaw = ref('');
+const formHandlePositionDocumentIds = ref<string[]>([]);
 const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
@@ -117,11 +122,12 @@ function onImageFieldError(message: string) {
 function openCreate() {
   editingHandle.value = null;
   formName.value = '';
+  formCode.value = '';
   formPrice.value = '';
   formColor.value = '';
   formPosition.value = '0';
   formHasHold.value = false;
-  formHandlePositionIdRaw.value = '';
+  formHandlePositionDocumentIds.value = [];
   formError.value = '';
   resetImageFormState();
   modalOpen.value = true;
@@ -142,12 +148,14 @@ function priceToFormString(price: HandleModalRow['price']): string {
 function openEdit(row: HandleModalRow) {
   editingHandle.value = row;
   formName.value = row.name;
+  formCode.value = row.code?.trim() ? row.code : '';
   formPrice.value = priceToFormString(row.price);
   formColor.value = row.color?.trim() ? row.color : '';
   formPosition.value = String(row.position ?? 0);
   formHasHold.value = row.hasHold === true;
-  const hp = extractHandlePositionRelation(row);
-  formHandlePositionIdRaw.value = hp.id != null ? String(hp.id) : '';
+  formHandlePositionDocumentIds.value = extractHandlePositionsRelations(row)
+    .map((hp) => hp.documentId)
+    .filter((d): d is string => typeof d === 'string' && d.trim() !== '');
   formError.value = '';
   resetImageFormState();
   modalOpen.value = true;
@@ -161,11 +169,12 @@ function closeModal() {
   modalOpen.value = false;
   editingHandle.value = null;
   formName.value = '';
+  formCode.value = '';
   formPrice.value = '';
   formColor.value = '';
   formPosition.value = '0';
   formHasHold.value = false;
-  formHandlePositionIdRaw.value = '';
+  formHandlePositionDocumentIds.value = [];
   formError.value = '';
 }
 
@@ -187,31 +196,17 @@ function buildSubmitBody(): Record<string, unknown> | null {
     return null;
   }
 
-  const rawHp = formHandlePositionIdRaw.value.trim();
-  if (rawHp === '') {
-    formError.value = '';
-  } else {
-    const nHp = Number(rawHp);
-    if (!Number.isInteger(nHp)) {
-      formError.value = 'Choose a valid handle position.';
-      return null;
-    }
-  }
-
   formError.value = '';
   const colorTrim = String(formColor.value ?? '').trim();
   const body: Record<string, unknown> = {
     name,
+    code: String(formCode.value ?? '').trim() || null,
     color: colorTrim === '' ? null : colorTrim,
     hasHold: formHasHold.value,
     position: pos,
   };
 
-  if (rawHp === '') {
-    body.handlePositionId = null;
-  } else {
-    body.handlePositionId = Number(rawHp);
-  }
+  body.handlePositionDocumentIds = [...formHandlePositionDocumentIds.value];
 
   const priceTrim = String(formPrice.value ?? '').trim();
 
@@ -249,16 +244,20 @@ async function submitModal() {
   const resetPage = editingHandle.value === null;
   formSaving.value = true;
   try {
+    const wasEdit = editingHandle.value !== null;
     if (editingHandle.value) {
       await updateHandle(editingHandle.value.documentId, body);
     } else {
       await createHandle(body);
     }
     formSaving.value = false;
+    toast.success(wasEdit ? 'Handle updated.' : 'Handle created.');
     closeModal();
     emit('saved', { resetPage });
   } catch (e: unknown) {
-    formError.value = getFetchErrorMessage(e, 'Could not save handle.');
+    const msg = getFetchErrorMessage(e, 'Could not save handle.');
+    formError.value = msg;
+    toast.danger(msg);
   } finally {
     formSaving.value = false;
   }
@@ -306,31 +305,39 @@ defineExpose({ openCreate, openEdit });
   margin-bottom: 0.375rem;
 }
 
-.front-modal__select {
-  width: 100%;
-  box-sizing: border-box;
-  padding-top: 0.625rem;
-  padding-bottom: 0.625rem;
-  padding-left: 0.75rem;
-  padding-right: var(--cms-select-padding-end);
-  padding-inline-end: var(--cms-select-padding-end);
+.handle-positions-checkboxes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--button-radius);
-  font-size: var(--paragraph-size-medium);
-  font-family: var(--font-sans);
-  color: var(--color-text-primary);
-  background-color: var(--color-surface-card);
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-card);
 }
 
-.front-modal__select:focus {
-  outline: none;
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 2px var(--color-success-muted);
-}
-
-.front-modal__select:disabled {
+.handle-positions-checkboxes--disabled {
   opacity: 0.65;
-  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.handle-pos-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  font-size: var(--paragraph-size-medium);
+  color: var(--color-text-primary);
+}
+
+.handle-pos-checkbox__input {
+  margin-top: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  accent-color: var(--color-primary, #2563eb);
 }
 
 .handle-checkbox {

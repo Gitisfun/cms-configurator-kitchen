@@ -91,6 +91,18 @@
                     <Icon name="lucide:plus" class="base-btn__icon" />
                     Add variant
                   </BaseButton>
+                  <BaseButton
+                    type="button"
+                    variant="text"
+                    danger
+                    size="sm"
+                    :disabled="typeDeletingDocumentId !== null"
+                    :loading="typeDeletingDocumentId === cabinetType.documentId"
+                    @click="confirmDeleteCabinetType(cabinetType)"
+                  >
+                    <Icon name="lucide:trash-2" class="base-btn__icon" />
+                    Delete type
+                  </BaseButton>
                 </div>
               </div>
 
@@ -272,7 +284,7 @@ import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import { strapiRelationList } from '../../utils/strapiRelationList';
 import { extractRelationDocumentId, extractRelationNumericId } from '../../utils/strapiRelationMeta';
 import { getCabinetSeriesById, type CabinetSeries } from '../../services/cabinet-series';
-import { getCabinetTypesCatalogForSeries, type CabinetType } from '../../services/cabinet-types';
+import { deleteCabinetType, getCabinetTypesCatalogForSeries, type CabinetType } from '../../services/cabinet-types';
 import { fetchCabinetPricesForVariantIds } from '../../services/cabinet-prices';
 import { getPriceClassesSortedByLevel, type PriceClass } from '../../services/price-classes';
 import type { CabinetVariant } from '../../models/cabinet-variant';
@@ -366,6 +378,9 @@ const seriesTaxonomyLine = computed(() => {
 });
 
 const expandedTypeIds = ref<Record<string, boolean>>({});
+const typeDeletingDocumentId = ref<string | null>(null);
+const { requestConfirm } = useConfirmDialog();
+const toast = useToast();
 
 function isExpanded(documentId: string): boolean {
   return !!expandedTypeIds.value[documentId];
@@ -546,6 +561,28 @@ function openEditType(row: CabinetType) {
   typeModalRef.value?.openEdit(row);
 }
 
+async function confirmDeleteCabinetType(cabinetType: CabinetType) {
+  const label = cabinetType.name.trim() || 'this cabinet type';
+  const ok = await requestConfirm({
+    title: 'Delete cabinet type?',
+    message: `Delete "${label}"? All variants, prices, and surcharge links for this type will be removed. Depth option links to this type are cleared. This cannot be undone.`,
+  });
+  if (!ok) return;
+  typeDeletingDocumentId.value = cabinetType.documentId;
+  try {
+    await deleteCabinetType(cabinetType.documentId);
+    const next = { ...expandedTypeIds.value };
+    delete next[cabinetType.documentId];
+    expandedTypeIds.value = next;
+    await refresh();
+    toast.success('Cabinet type deleted.');
+  } catch (e: unknown) {
+    toast.danger(getFetchErrorMessage(e, 'Could not delete cabinet type.'));
+  } finally {
+    typeDeletingDocumentId.value = null;
+  }
+}
+
 function openAddVariant(typeNumericId: number) {
   variantModalRef.value?.openCreateForType(typeNumericId, {
     lockVariantHeight: catalogSeriesLocksVariantHeight.value,
@@ -559,13 +596,18 @@ function openEditVariant(row: CabinetVariant) {
 }
 
 async function confirmRemoveVariant(variant: CabinetVariant) {
-  if (!window.confirm(`Delete variant "${variant.orderNumber}"? Its prices will be removed.`)) return;
+  const ok = await requestConfirm({
+    title: 'Delete variant?',
+    message: `Delete variant "${variant.orderNumber}"? Its prices will be removed.`,
+  });
+  if (!ok) return;
   variantDeletingDocumentId.value = variant.documentId;
   try {
     await deleteCabinetVariant(variant.documentId);
     await refresh();
+    toast.success('Variant deleted.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Could not delete variant.'));
+    toast.danger(getFetchErrorMessage(e, 'Could not delete variant.'));
   } finally {
     variantDeletingDocumentId.value = null;
   }
@@ -612,13 +654,18 @@ function openEditSurchargeLink(cabinetType: CabinetType, link: CabinetTypeSurcha
 
 async function confirmUnlinkSurcharge(cabinetType: CabinetType, link: CabinetTypeSurchargeLink) {
   const label = extractSurchargeFromLink(link)?.name ?? 'this surcharge';
-  if (!window.confirm(`Remove surcharge "${label}" from ${cabinetType.name}? Its per-class prices will be deleted.`)) return;
+  const ok = await requestConfirm({
+    title: 'Remove surcharge link?',
+    message: `Remove surcharge "${label}" from ${cabinetType.name}? Its per-class prices will be deleted.`,
+  });
+  if (!ok) return;
   surchargeLinkDeletingDocumentId.value = link.documentId;
   try {
     await deleteCabinetTypeSurchargeLink(link.documentId);
     await refresh();
+    toast.success('Surcharge link removed.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Could not remove surcharge link.'));
+    toast.danger(getFetchErrorMessage(e, 'Could not remove surcharge link.'));
   } finally {
     surchargeLinkDeletingDocumentId.value = null;
   }
@@ -629,15 +676,21 @@ async function onSurchargeLinkSaved() {
 }
 
 async function confirmUnlinkDepthOption(cabinetType: CabinetType, opt: DepthOption) {
-  if (!window.confirm(`Remove depth option "${opt.name}" from this cabinet type? The row stays in the library.`)) return;
+  const ok = await requestConfirm({
+    title: 'Remove depth option?',
+    message: `Remove depth option "${opt.name}" from this cabinet type? The row stays in the library.`,
+    confirmLabel: 'Remove',
+  });
+  if (!ok) return;
   depthUnlinkingDocumentId.value = opt.documentId;
   try {
     await updateDepthOption(opt.documentId, {
       disconnectCabinetTypeDocumentIds: [cabinetType.documentId],
     });
     await refresh();
+    toast.success('Depth option removed from type.');
   } catch (e: unknown) {
-    window.alert(getFetchErrorMessage(e, 'Could not remove depth option.'));
+    toast.danger(getFetchErrorMessage(e, 'Could not remove depth option.'));
   } finally {
     depthUnlinkingDocumentId.value = null;
   }
@@ -810,19 +863,24 @@ useHead({
 }
 
 .catalog-type-block__thumb {
-  width: 88px;
-  height: 88px;
+  width: 108px;
+  height: 108px;
   border-radius: var(--button-radius);
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: #fff;
   overflow: hidden;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-sizing: border-box;
 }
 
 .catalog-type-block__thumb-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
