@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+import { reactive, computed } from 'vue';
 
 export type ToastVariant = 'success' | 'info' | 'danger';
 
@@ -32,12 +32,12 @@ function clearTimer(id: number) {
 function getStore(): ToastStore {
   const g = globalThis as typeof globalThis & { [STORE_KEY]?: ToastStore };
   if (!g[STORE_KEY]) {
-    g[STORE_KEY] = {
+    g[STORE_KEY] = reactive<ToastStore>({
       items: [],
       seq: 0,
-    };
+    });
   }
-  return g[STORE_KEY];
+  return g[STORE_KEY]!;
 }
 
 export function dismissToast(id: number) {

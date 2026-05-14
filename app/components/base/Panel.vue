@@ -4,9 +4,7 @@
       v-if="!pending && !error && pagination != null && $slots.toolbar"
       class="base-panel__toolbar"
     >
-      <span class="base-panel__summary">
-        <slot name="toolbar" />
-      </span>
+      <slot name="toolbar" />
     </div>
 
     <div v-if="pending" class="base-panel__loading">
@@ -79,14 +77,22 @@ const showPagination = computed(
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 0.75rem 1.25rem;
+  gap: 0.625rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 42px;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
-.base-panel__summary {
+:slotted(.base-panel__summary) {
   font-size: var(--paragraph-size-small);
   color: var(--color-text-muted);
+}
+
+:slotted(.base-panel__bulk-actions) {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 .base-panel__loading {

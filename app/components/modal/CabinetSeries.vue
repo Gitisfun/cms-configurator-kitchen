@@ -1,10 +1,11 @@
 <template>
-  <BaseModal v-model="modalOpen" title-id="cabinet-series-modal-title" :title="editing ? 'Edit cabinet series' : 'New cabinet series'" size="medium" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
+  <BaseModal v-model="modalOpen" title-id="cabinet-series-modal-title" :title="editing ? 'Edit cabinet series' : 'New cabinet series'" size="wide" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
     <form id="cabinet-series-modal-form" @submit.prevent="submitModal">
       <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
-      <BaseInputField v-model="formCode" label="Code" required-mark type="text" name="code" autocomplete="off" maxlength="255" required :disabled="formSaving" spaced />
       <BaseInputField v-model="formCarcaseHeight" label="Carcase height (mm)" type="number" name="carcaseHeight" min="1" step="1" :disabled="formSaving" spaced />
       <BaseInputField v-model="formDefaultCarcaseDepth" label="Default carcase depth (mm)" type="number" name="defaultCarcaseDepth" min="1" step="1" :disabled="formSaving" spaced />
+
+      <BaseImageUpload ref="imageFieldRef" v-model:image-id="formImageId" v-model:image-touched="formImageTouched" :row-preview-url="rowImage.src" :row-image-id="rowImage.id" :disabled="formSaving" @error="onImageFieldError" />
 
       <div class="cs-modal__field cs-modal__field--spaced">
         <span class="cs-modal__label">Product line</span>
@@ -65,6 +66,8 @@
 
 <script setup lang="ts">
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
+import { extractPlinthImage } from '../../utils/plinthImage';
+import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import { extractRelationNumericId } from '../../utils/strapiRelationMeta';
 import { createCabinetSeries, updateCabinetSeries, type CabinetSeries } from '../../services/cabinet-series';
 import { getAllCategories, type Category } from '../../services/categories';
@@ -77,11 +80,11 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const strapiPublicUrl = useStrapiPublicUrl();
 
 const modalOpen = ref(false);
 const editing = ref<CabinetSeriesModalRow | null>(null);
 const formName = ref('');
-const formCode = ref('');
 const formCarcaseHeight = ref('');
 const formDefaultCarcaseDepth = ref('');
 const formProductLine = ref('');
@@ -91,11 +94,29 @@ const formSubcategoryIdRaw = ref('');
 const formError = ref('');
 const formSaving = ref(false);
 const nameInputRef = ref<{ focus: () => void } | null>(null);
+const imageFieldRef = ref<{ reset: () => void; attemptCloseMediaPicker: () => boolean } | null>(null);
+const formImageId = ref<number | null>(null);
+const formImageTouched = ref(false);
 
 const categoryOptions = ref<Category[]>([]);
 const subcategoryOptions = ref<Subcategory[]>([]);
 const taxonomyLoading = ref(false);
 const taxonomyLoadError = ref('');
+
+const rowImage = computed(() => {
+  const row = editing.value;
+  if (!row) return { src: null as string | null, id: null as number | null };
+  const ex = extractPlinthImage(row, strapiPublicUrl.value);
+  return { src: ex.src, id: ex.id };
+});
+
+function resetImageFormState() {
+  imageFieldRef.value?.reset();
+}
+
+function onImageFieldError(message: string) {
+  formError.value = message;
+}
 
 async function loadTaxonomy() {
   if (taxonomyLoading.value) return;
@@ -115,7 +136,6 @@ async function loadTaxonomy() {
 function openCreate() {
   editing.value = null;
   formName.value = '';
-  formCode.value = '';
   formCarcaseHeight.value = '';
   formDefaultCarcaseDepth.value = '';
   formProductLine.value = '';
@@ -123,6 +143,7 @@ function openCreate() {
   formCategoryIdRaw.value = '';
   formSubcategoryIdRaw.value = '';
   formError.value = '';
+  resetImageFormState();
   modalOpen.value = true;
   void loadTaxonomy();
   nextTick(() => nameInputRef.value?.focus());
@@ -131,7 +152,6 @@ function openCreate() {
 function openEdit(row: CabinetSeriesModalRow) {
   editing.value = row;
   formName.value = row.name;
-  formCode.value = row.code;
   formCarcaseHeight.value = row.carcaseHeight != null ? String(row.carcaseHeight) : '';
   formDefaultCarcaseDepth.value = row.defaultCarcaseDepth != null ? String(row.defaultCarcaseDepth) : '';
   formProductLine.value = row.productLine ?? '';
@@ -151,6 +171,7 @@ function openEdit(row: CabinetSeriesModalRow) {
     formSubcategoryIdRaw.value = '';
   }
   formError.value = '';
+  resetImageFormState();
   modalOpen.value = true;
   void loadTaxonomy();
   nextTick(() => nameInputRef.value?.focus());
@@ -158,6 +179,7 @@ function openEdit(row: CabinetSeriesModalRow) {
 
 function closeModal() {
   if (formSaving.value) return;
+  resetImageFormState();
   modalOpen.value = false;
   editing.value = null;
 }
@@ -168,15 +190,9 @@ async function submitModal() {
     formError.value = 'Please enter a name.';
     return;
   }
-  const code = formCode.value.trim();
-  if (!code) {
-    formError.value = 'Please enter a code.';
-    return;
-  }
   formError.value = '';
   const body: Record<string, unknown> = {
     name,
-    code,
   };
 
   const chRaw = String(formCarcaseHeight.value ?? '').trim();
@@ -214,6 +230,8 @@ async function submitModal() {
     body.categoryId = null;
     body.subcategoryId = rawSc ? Number(rawSc) : null;
   }
+
+  if (formImageTouched.value) body.imageId = formImageId.value;
 
   formSaving.value = true;
   try {
@@ -254,7 +272,9 @@ watch(modalOpen, (open) => {
   }
   if (open) {
     escKeyHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !formSaving.value) closeModal();
+      if (e.key !== 'Escape' || formSaving.value) return;
+      if (imageFieldRef.value?.attemptCloseMediaPicker()) return;
+      closeModal();
     };
     document.addEventListener('keydown', escKeyHandler);
   }

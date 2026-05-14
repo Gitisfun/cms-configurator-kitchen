@@ -7,6 +7,8 @@
     <main class="cms-layout__main">
       <slot />
     </main>
+
+    <CmsToastHost />
   </div>
 </template>
 

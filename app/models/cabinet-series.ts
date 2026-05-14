@@ -18,7 +18,7 @@ export interface CabinetSeries {
   id: number;
   documentId: string;
   name: string;
-  code: string;
+  image?: unknown;
   carcaseHeight: number | null;
   defaultCarcaseDepth: number | null;
   productLine: 'standard' | 'cLine' | 'xLine' | null;

@@ -3,6 +3,7 @@
     <BaseModal v-model="modalOpen" title-id="cabinet-type-modal-title" :title="editing ? 'Edit cabinet type' : 'New cabinet type'" size="wide" :close-disabled="formSaving" :close-on-backdrop="!formSaving">
       <form id="cabinet-type-modal-form" @submit.prevent="submitModal">
         <BaseInputField ref="nameInputRef" v-model="formName" label="Name" required-mark type="text" name="name" autocomplete="off" maxlength="255" required :disabled="formSaving" />
+        <BaseImageUpload ref="imageFieldRef" v-model:image-id="formImageId" v-model:image-touched="formImageTouched" :row-preview-url="rowImage.src" :row-image-id="rowImage.id" :disabled="formSaving" spaced @error="onImageFieldError" />
         <BaseInputField label="Description" spaced>
           <textarea
             v-model="formDescription"
@@ -69,8 +70,6 @@
             </BaseButton>
           </div>
         </div>
-
-        <BaseImageUpload ref="imageFieldRef" v-model:image-id="formImageId" v-model:image-touched="formImageTouched" :row-preview-url="rowImage.src" :row-image-id="rowImage.id" :disabled="formSaving" @error="onImageFieldError" />
 
         <p v-if="formError" class="base-modal__error">{{ formError }}</p>
       </form>

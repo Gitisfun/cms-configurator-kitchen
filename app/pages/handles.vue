@@ -11,8 +11,17 @@
 
     <BasePanel :pending="pending" :error="!!error" :pagination="pagination" :empty-first-page="handles.length === 0 && page === 1" :empty-off-page="handles.length === 0 && page > 1" :item-count="handles.length" :page="page">
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'handle' : 'handles' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'handle' : 'handles' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading handles&hellip;</template>
       <template #error>
@@ -39,6 +48,16 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(handles.map((x) => x.documentId))"
+                :indeterminate="someOnPageSelected(handles.map((x) => x.documentId)) && !allOnPageSelected(handles.map((x) => x.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(handles.map((x) => x.documentId))"
+              />
+            </th>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
             <th scope="col">Code</th>
@@ -52,10 +71,13 @@
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="h in handles" :key="h.documentId">
+        <tr v-for="h in handles" :key="h.documentId" :class="{ 'base-table__row--selected': isSelected(h.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(h.documentId)" :aria-label="`Select ${h.name}`" @change="toggle(h.documentId)" />
+          </td>
           <td class="base-table__image-cell">
-            <div v-if="handleImageSrc(h)" class="base-table__thumb-wrap">
-              <img :src="handleImageSrc(h)!" alt="" class="base-table__thumb" loading="lazy" />
+            <div v-if="TableHelpers.rowImageSrc(h, strapiPublicUrl)" class="base-table__thumb-wrap">
+              <img :src="TableHelpers.rowImageSrc(h, strapiPublicUrl)!" alt="" class="base-table__thumb" loading="lazy" />
             </div>
             <span v-else class="base-table__dash">—</span>
           </td>
@@ -67,14 +89,14 @@
               <span class="base-table__name-text">{{ h.name }}</span>
             </div>
           </td>
-          <td>{{ codeCell(h.code) }}</td>
-          <td>{{ handlePositionLabel(h) }}</td>
+          <td>{{ TableHelpers.codeCell(h.code) }}</td>
+          <td>{{ TableHelpers.handlePositionLabel(h) }}</td>
           <td>{{ h.position ?? 0 }}</td>
           <td>{{ h.hasHold ? 'Yes' : 'No' }}</td>
-          <td>{{ colorLabel(h.color) }}</td>
-          <td>{{ formatPrice(h.price) }}</td>
-          <td>{{ formatDate(h.publishedAt) }}</td>
-          <td>{{ formatDate(h.updatedAt) }}</td>
+          <td>{{ TableHelpers.colorLabel(h.color) }}</td>
+          <td>{{ Format.priceEur(h.price) }}</td>
+          <td>{{ Format.dateTime(h.publishedAt) }}</td>
+          <td>{{ Format.dateTime(h.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === h.documentId" @click="openEditModal(h)">
@@ -100,40 +122,16 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate, formatPriceEur as formatPrice } from '../utils/format';
+import Format from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
-import { extractHandlePositionsRelations } from '../utils/handlePositionRelation';
-import { extractPlinthImage } from '../utils/plinthImage';
 import { useStrapiPublicUrl } from '../utils/strapiPublicUrl';
 import { defaultHandlesResponse, deleteHandle, handlesListPath, handlesListQuery, type Handle, type HandlesResponse } from '../services/handles';
+import TableHelpers from '../utils/tableHelpers';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
 
 const strapiPublicUrl = useStrapiPublicUrl();
-
-function handleImageSrc(h: Handle): string | null {
-  return extractPlinthImage(h, strapiPublicUrl.value).src;
-}
-
-function colorLabel(color: string | null): string {
-  const t = color?.trim();
-  if (!t) return '—';
-  return t;
-}
-
-function codeCell(code: string | null | undefined): string {
-  const t = code?.trim();
-  return t ? t : '—';
-}
-
-function handlePositionLabel(h: Handle): string {
-  const names = extractHandlePositionsRelations(h)
-    .map((hp) => hp.name)
-    .filter((n): n is string => typeof n === 'string' && n.trim() !== '');
-  if (!names.length) return '—';
-  return names.join(', ');
-}
 
 const { data, pending, error, refresh } = useFetch<HandlesResponse>(handlesListPath, {
   key: computed(() => `handles-p${page.value}`),
@@ -148,6 +146,10 @@ const { modalRef: handleModalRef, openCreateModal, openEditModal } = useModal<Ha
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 async function onHandleSaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;
@@ -170,5 +172,34 @@ async function confirmDelete(h: Handle) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'handle' : 'handles';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteHandle(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>

@@ -15,8 +15,17 @@
 
     <BasePanel :pending="pending" :error="!!error" :pagination="pagination" :empty-first-page="rows.length === 0 && page === 1" :empty-off-page="rows.length === 0 && page > 1" :item-count="rows.length" :page="page">
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'option' : 'options' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'option' : 'options' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading depth options&hellip;</template>
       <template #error>
@@ -43,6 +52,16 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(rows.map((r) => r.documentId))"
+                :indeterminate="someOnPageSelected(rows.map((r) => r.documentId)) && !allOnPageSelected(rows.map((r) => r.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(rows.map((r) => r.documentId))"
+              />
+            </th>
             <th scope="col">Name</th>
             <th scope="col">Depth</th>
             <th scope="col">Surcharge Code</th>
@@ -54,7 +73,10 @@
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="row in rows" :key="row.documentId">
+        <tr v-for="row in rows" :key="row.documentId" :class="{ 'base-table__row--selected': isSelected(row.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(row.documentId)" :aria-label="`Select ${row.name}`" @change="toggle(row.documentId)" />
+          </td>
           <td>
             <div class="base-table__name">
               <span class="base-table__icon">
@@ -65,11 +87,11 @@
           </td>
           <td>{{ row.depth }} mm</td>
           <td>{{ row.surchargeCode ?? '—' }}</td>
-          <td>{{ formatPrice(row.surchargeAmount) }}</td>
+          <td>{{ Format.priceEur(row.surchargeAmount) }}</td>
           <td>{{ row.isDefault ? 'Yes' : 'No' }}</td>
-          <td>{{ typeLabel(row) }}</td>
-          <td>{{ formatDate(row.publishedAt) }}</td>
-          <td>{{ formatDate(row.updatedAt) }}</td>
+          <td>{{ TableHelpers.cabinetTypesLabel(row) }}</td>
+          <td>{{ Format.dateTime(row.publishedAt) }}</td>
+          <td>{{ Format.dateTime(row.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === row.documentId" @click="openEditModal(row)">
@@ -95,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate, formatPriceEur as formatPrice } from '../utils/format';
+import Format from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
 import {
   depthOptionsListPath,
@@ -105,7 +127,7 @@ import {
   type DepthOption,
   type DepthOptionsResponse,
 } from '../services/depth-options';
-import { formatDepthOptionCabinetTypesLabel } from '../utils/depthOptionCabinetTypes';
+import TableHelpers from '../utils/tableHelpers';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
@@ -123,13 +145,13 @@ const { modalRef, openCreateModal, openEditModal } = useModal<DepthOption>();
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 function goToProducts() {
   void navigateTo('/products');
-}
-
-function typeLabel(row: DepthOption): string {
-  return formatDepthOptionCabinetTypesLabel(row);
 }
 
 async function onSaved(payload: { resetPage: boolean }) {
@@ -153,5 +175,34 @@ async function confirmDelete(row: DepthOption) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'depth option' : 'depth options';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteDepthOption(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>

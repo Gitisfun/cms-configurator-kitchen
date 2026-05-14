@@ -1,5 +1,4 @@
 const MAX_NAME_LEN = 255;
-const MAX_CODE_LEN = 255;
 const VALID_PRODUCT_LINES = ['standard', 'cLine', 'xLine'];
 
 export function buildCabinetSeriesData(body: unknown): Record<string, unknown> {
@@ -16,15 +15,7 @@ export function buildCabinetSeriesData(body: unknown): Record<string, unknown> {
     throw createError({ statusCode: 400, statusMessage: `Name must be at most ${MAX_NAME_LEN} characters` });
   }
 
-  const code = typeof b.code === 'string' ? b.code.trim() : '';
-  if (!code) {
-    throw createError({ statusCode: 400, statusMessage: 'Code is required' });
-  }
-  if (code.length > MAX_CODE_LEN) {
-    throw createError({ statusCode: 400, statusMessage: `Code must be at most ${MAX_CODE_LEN} characters` });
-  }
-
-  const data: Record<string, unknown> = { name, code };
+  const data: Record<string, unknown> = { name };
 
   if ('carcaseHeight' in b) {
     const v = b.carcaseHeight;
@@ -94,6 +85,23 @@ export function buildCabinetSeriesData(body: unknown): Record<string, unknown> {
     } else {
       data.category = null;
       data.subcategory = null;
+    }
+  }
+
+  if ('imageId' in b) {
+    const img = b.imageId;
+    if (img === null) {
+      data.image = null;
+    } else if (typeof img === 'number' && Number.isFinite(img)) {
+      data.image = img;
+    } else if (typeof img === 'string' && img.trim() !== '') {
+      const n = Number(img.trim());
+      if (!Number.isFinite(n)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid imageId' });
+      }
+      data.image = n;
+    } else {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid imageId' });
     }
   }
 

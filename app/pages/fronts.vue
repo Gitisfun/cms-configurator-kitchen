@@ -11,8 +11,17 @@
 
     <BasePanel :pending="pending" :error="!!error" :pagination="pagination" :empty-first-page="fronts.length === 0 && page === 1" :empty-off-page="fronts.length === 0 && page > 1" :item-count="fronts.length" :page="page">
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'front' : 'fronts' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'front' : 'fronts' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading fronts&hellip;</template>
       <template #error>
@@ -39,6 +48,16 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(fronts.map((x) => x.documentId))"
+                :indeterminate="someOnPageSelected(fronts.map((x) => x.documentId)) && !allOnPageSelected(fronts.map((x) => x.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(fronts.map((x) => x.documentId))"
+              />
+            </th>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
             <th scope="col">Code</th>
@@ -49,10 +68,13 @@
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="f in fronts" :key="f.documentId">
+        <tr v-for="f in fronts" :key="f.documentId" :class="{ 'base-table__row--selected': isSelected(f.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(f.documentId)" :aria-label="`Select ${f.name}`" @change="toggle(f.documentId)" />
+          </td>
           <td class="base-table__image-cell">
-            <div v-if="frontImageSrc(f)" class="base-table__thumb-wrap">
-              <img :src="frontImageSrc(f)!" alt="" class="base-table__thumb" loading="lazy" />
+            <div v-if="TableHelpers.rowImageSrc(f, strapiPublicUrl)" class="base-table__thumb-wrap">
+              <img :src="TableHelpers.rowImageSrc(f, strapiPublicUrl)!" alt="" class="base-table__thumb" loading="lazy" />
             </div>
             <span v-else class="base-table__dash">—</span>
           </td>
@@ -64,11 +86,11 @@
               <span class="base-table__name-text">{{ f.name }}</span>
             </div>
           </td>
-          <td>{{ codeCell(f.code) }}</td>
-          <td>{{ priceClassLabel(f) }}</td>
-          <td class="fronts-page__desc">{{ descriptionPreview(f.description) }}</td>
-          <td>{{ formatDate(f.publishedAt) }}</td>
-          <td>{{ formatDate(f.updatedAt) }}</td>
+          <td>{{ TableHelpers.codeCell(f.code) }}</td>
+          <td>{{ TableHelpers.priceClassLabel(f) }}</td>
+          <td class="fronts-page__desc">{{ TableHelpers.descriptionPreview(f.description) }}</td>
+          <td>{{ Format.dateTime(f.publishedAt) }}</td>
+          <td>{{ Format.dateTime(f.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === f.documentId" @click="openEditModal(f)">
@@ -94,41 +116,16 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate } from '../utils/format';
+import Format from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
-import { extractFrontPriceClass } from '../utils/frontPriceClass';
-import { extractPlinthImage } from '../utils/plinthImage';
 import { useStrapiPublicUrl } from '../utils/strapiPublicUrl';
 import { defaultFrontsResponse, deleteFront, frontsListPath, frontsListQuery, type Front, type FrontsResponse } from '../services/fronts';
+import TableHelpers from '../utils/tableHelpers';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
 
 const strapiPublicUrl = useStrapiPublicUrl();
-
-function frontImageSrc(f: Front): string | null {
-  return extractPlinthImage(f, strapiPublicUrl.value).src;
-}
-
-function priceClassLabel(f: Front): string {
-  const pc = extractFrontPriceClass(f);
-  if (!pc.name) return '—';
-  if (pc.level != null) return `${pc.name} (${pc.level})`;
-  return pc.name;
-}
-
-function codeCell(code: string | null | undefined): string {
-  const t = code?.trim();
-  return t ? t : '—';
-}
-
-function descriptionPreview(text: string | null, max = 72): string {
-  if (!text) return '—';
-  const t = text.trim();
-  if (!t) return '—';
-  if (t.length <= max) return t;
-  return `${t.slice(0, max)}…`;
-}
 
 const { data, pending, error, refresh } = useFetch<FrontsResponse>(frontsListPath, {
   key: computed(() => `fronts-p${page.value}`),
@@ -143,6 +140,10 @@ const { modalRef: frontModalRef, openCreateModal, openEditModal } = useModal<Fro
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 async function onFrontSaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;
@@ -165,6 +166,35 @@ async function confirmDelete(f: Front) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'front' : 'fronts';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteFront(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>
 

@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Name is required' });
   }
 
+  const rawValue = body?.value;
+  const valueTrimmed = typeof rawValue === 'string' ? rawValue.trim() : '';
+
   try {
     return await $fetch(`${config.strapiUrl}/api/categories`, {
       method: 'POST',
@@ -24,7 +27,12 @@ export default defineEventHandler(async (event) => {
         Authorization: `Bearer ${config.strapiToken}`,
         'Content-Type': 'application/json',
       },
-      body: { data: { name } },
+      body: {
+        data: {
+          name,
+          ...(valueTrimmed !== '' ? { value: valueTrimmed } : {}),
+        },
+      },
     });
   } catch (err: unknown) {
     const status =

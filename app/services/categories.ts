@@ -31,14 +31,14 @@ export function getAllCategories(page: number, pageSize: number) {
   });
 }
 
-export function createCategory(body: { name: string }) {
+export function createCategory(body: { name: string; value?: string | null }) {
   return $fetch(categoriesListPath, {
     method: 'POST',
     body,
   });
 }
 
-export function updateCategory(documentId: string, body: { name: string }) {
+export function updateCategory(documentId: string, body: { name: string; value?: string | null }) {
   return $fetch(`${categoriesListPath}/${encodeURIComponent(documentId)}`, {
     method: 'PUT',
     body,

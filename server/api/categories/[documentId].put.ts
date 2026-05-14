@@ -23,6 +23,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Name is required' });
   }
 
+  const rawValue = body?.value;
+  const valueTrimmed = typeof rawValue === 'string' ? rawValue.trim() : '';
+  const data: Record<string, unknown> = {
+    name,
+    value: valueTrimmed === '' ? null : valueTrimmed,
+  };
+
   try {
     return await $fetch(`${config.strapiUrl}/api/categories/${encodeURIComponent(documentId)}`, {
       method: 'PUT',
@@ -30,7 +37,7 @@ export default defineEventHandler(async (event) => {
         Authorization: `Bearer ${config.strapiToken}`,
         'Content-Type': 'application/json',
       },
-      body: { data: { name } },
+      body: { data },
     });
   } catch (err: unknown) {
     const status =

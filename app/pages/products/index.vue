@@ -22,8 +22,17 @@
       :page="page"
     >
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'series' : 'series' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'series' : 'series' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading series&hellip;</template>
       <template #error>
@@ -50,8 +59,18 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(rows.map((r) => r.documentId))"
+                :indeterminate="someOnPageSelected(rows.map((r) => r.documentId)) && !allOnPageSelected(rows.map((r) => r.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(rows.map((r) => r.documentId))"
+              />
+            </th>
+            <th scope="col" class="products-page__th-image">Image</th>
             <th scope="col">Name</th>
-            <th scope="col">Code</th>
             <th scope="col">Carcase height</th>
             <th scope="col">Default depth</th>
             <th scope="col">Product line</th>
@@ -61,7 +80,14 @@
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="row in rows" :key="row.documentId">
+        <tr v-for="row in rows" :key="row.documentId" :class="{ 'base-table__row--selected': isSelected(row.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(row.documentId)" :aria-label="`Select ${row.name}`" @change="toggle(row.documentId)" />
+          </td>
+          <td class="products-page__td-image">
+            <img v-if="seriesImageSrc(row)" :src="seriesImageSrc(row)" alt="" class="products-page__series-thumb" loading="lazy" width="40" height="40" />
+            <span v-else class="products-page__series-thumb-placeholder" aria-hidden="true">—</span>
+          </td>
           <td>
             <div class="base-table__name">
               <span class="base-table__icon">
@@ -72,7 +98,6 @@
               </NuxtLink>
             </div>
           </td>
-          <td>{{ row.code }}</td>
           <td>{{ row.carcaseHeight != null ? `${row.carcaseHeight} mm` : '—' }}</td>
           <td>{{ row.defaultCarcaseDepth != null ? `${row.defaultCarcaseDepth} mm` : '—' }}</td>
           <td>{{ productLineLabel(row.productLine) }}</td>
@@ -83,7 +108,7 @@
               Open catalog
             </NuxtLink>
           </td>
-          <td>{{ formatDate(row.updatedAt) }}</td>
+          <td>{{ Format.dateTime(row.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === row.documentId" @click="openEditModal(row)">
@@ -109,7 +134,9 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate } from '../../utils/format';
+import Format from '../../utils/format';
+import { extractPlinthImage } from '../../utils/plinthImage';
+import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
 import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
 import {
   cabinetSeriesListPath,
@@ -119,6 +146,8 @@ import {
   type CabinetSeries,
   type CabinetSeriesListResponse,
 } from '../../services/cabinet-series';
+
+const strapiPublicUrl = useStrapiPublicUrl();
 
 const PAGE_SIZE = 25;
 const page = ref(1);
@@ -136,6 +165,10 @@ const { modalRef, openCreateModal, openEditModal } = useModal<CabinetSeries>();
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 function productLineLabel(pl: string | null): string {
   if (!pl) return '—';
@@ -160,6 +193,10 @@ function seriesTaxonomyLabel(row: CabinetSeries): string {
   return '—';
 }
 
+function seriesImageSrc(row: CabinetSeries): string | null {
+  return extractPlinthImage(row, strapiPublicUrl.value).src;
+}
+
 async function onSaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;
   await refresh();
@@ -181,6 +218,35 @@ async function confirmDelete(row: CabinetSeries) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'series' : 'series';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected cabinet ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteCabinetSeries(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} cabinet ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>
 
@@ -217,5 +283,35 @@ async function confirmDelete(row: CabinetSeries) {
 
 .products-page__th-catalog {
   white-space: nowrap;
+}
+
+.products-page__th-image {
+  width: 3.25rem;
+}
+
+.products-page__td-image {
+  vertical-align: middle;
+}
+
+.products-page__series-thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-hover);
+}
+
+.products-page__series-thumb-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--button-radius);
+  border: 1px dashed var(--color-border);
+  font-size: var(--paragraph-size-small);
+  color: var(--color-text-muted);
 }
 </style>

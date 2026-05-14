@@ -114,6 +114,29 @@
   text-align: right;
 }
 
+.base-table-wrap .base-table__th-select,
+.base-table-wrap .base-table__td-select {
+  width: 40px;
+  min-width: 40px;
+  padding: 0.875rem 0 0.875rem 1.25rem;
+  vertical-align: middle;
+}
+
+.base-table-wrap .base-table__checkbox {
+  display: block;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--color-brand, #1b3a5c);
+  flex-shrink: 0;
+}
+
+/* Highlight selected rows */
+.base-table-wrap .base-table__row--selected td {
+  background: color-mix(in srgb, var(--color-brand, #1b3a5c) 5%, transparent);
+}
+
 .base-table-wrap .base-table__actions {
   text-align: right;
   white-space: nowrap;

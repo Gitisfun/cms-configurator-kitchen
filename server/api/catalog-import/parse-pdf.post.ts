@@ -10,6 +10,13 @@ type ExternalZipProduct = {
   [key: string]: unknown;
 };
 
+type ExternalZipSeries = {
+  name?: unknown;
+  carcaseHeight?: unknown;
+  defaultCarcaseDepth?: unknown;
+  productIndexes?: unknown;
+};
+
 type ApiRowCropImage = {
   source: 'row-crop';
   page: number;
@@ -18,10 +25,63 @@ type ApiRowCropImage = {
   dataUrl: string;
 };
 
+type ApiCabinetSeriesSection = {
+  name: string;
+  carcaseHeight: number | null;
+  defaultCarcaseDepth: number | null;
+  productIndexes: number[];
+};
+
 function mimeFromPath(path: string): 'image/png' | 'image/svg+xml' {
   const p = path.toLowerCase();
   if (p.endsWith('.svg')) return 'image/svg+xml';
   return 'image/png';
+}
+
+function nullableInteger(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isInteger(value) || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function seriesKey(series: ApiCabinetSeriesSection): string {
+  return [
+    series.name.trim().toLowerCase().replace(/\s+/g, ' '),
+    series.carcaseHeight ?? '',
+    series.defaultCarcaseDepth ?? '',
+  ].join('|');
+}
+
+function normalizeSeriesSections(raw: unknown, productCount: number): ApiCabinetSeriesSection[] {
+  if (!Array.isArray(raw)) return [];
+  const byKey = new Map<string, ApiCabinetSeriesSection>();
+
+  for (const item of raw as ExternalZipSeries[]) {
+    if (!item || typeof item !== 'object') continue;
+    const name = typeof item.name === 'string' ? item.name.trim() : '';
+    if (!name) continue;
+    const indexesRaw = Array.isArray(item.productIndexes) ? item.productIndexes : [];
+    const productIndexes = [...new Set(
+      indexesRaw
+        .filter((idx): idx is number => Number.isInteger(idx) && idx >= 0 && idx < productCount),
+    )];
+    if (productIndexes.length === 0) continue;
+
+    const section: ApiCabinetSeriesSection = {
+      name,
+      carcaseHeight: nullableInteger(item.carcaseHeight),
+      defaultCarcaseDepth: nullableInteger(item.defaultCarcaseDepth),
+      productIndexes,
+    };
+    const key = seriesKey(section);
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.productIndexes = [...new Set([...existing.productIndexes, ...productIndexes])].sort((a, b) => a - b);
+    } else {
+      byKey.set(key, section);
+    }
+  }
+
+  return [...byKey.values()];
 }
 
 export default defineEventHandler(async (event) => {
@@ -62,6 +122,7 @@ export default defineEventHandler(async (event) => {
   }
 
   let productsRaw: unknown;
+  let seriesRaw: unknown;
   const images: ApiRowCropImage[] = [];
   let warnings: string[] = [];
   try {
@@ -73,6 +134,11 @@ export default defineEventHandler(async (event) => {
     }
     const productsText = await zip.file(productsPath)!.async('string');
     productsRaw = JSON.parse(productsText);
+    const seriesPath = files.find((p) => /(^|\/)series\.json$/i.test(p) && !zip.files[p]?.dir);
+    if (seriesPath) {
+      const seriesText = await zip.file(seriesPath)!.async('string');
+      seriesRaw = JSON.parse(seriesText);
+    }
 
     const imagePaths = files.filter((p) => p.startsWith('images/') && !zip.files[p]?.dir);
     const allImageDataUrls = new Map<string, { mimeType: 'image/png' | 'image/svg+xml'; dataUrl: string }>();
@@ -121,10 +187,12 @@ export default defineEventHandler(async (event) => {
       data: { errors: v.errors, warnings },
     });
   }
+  const series = normalizeSeriesSections(seriesRaw, v.data.length);
 
   return {
     ok: true as const,
     data: v.data,
+    series,
     warnings,
     images,
   };

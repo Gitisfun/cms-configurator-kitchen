@@ -11,8 +11,17 @@
 
     <BasePanel :pending="pending" :error="!!error" :pagination="pagination" :empty-first-page="backs.length === 0 && page === 1" :empty-off-page="backs.length === 0 && page > 1" :item-count="backs.length" :page="page">
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'back' : 'backs' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'back' : 'backs' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading backs&hellip;</template>
       <template #error>
@@ -39,6 +48,16 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(backs.map((b) => b.documentId))"
+                :indeterminate="someOnPageSelected(backs.map((b) => b.documentId)) && !allOnPageSelected(backs.map((b) => b.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(backs.map((b) => b.documentId))"
+              />
+            </th>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
             <th scope="col">Code</th>
@@ -49,10 +68,13 @@
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="b in backs" :key="b.documentId">
+        <tr v-for="b in backs" :key="b.documentId" :class="{ 'base-table__row--selected': isSelected(b.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(b.documentId)" :aria-label="`Select ${b.name}`" @change="toggle(b.documentId)" />
+          </td>
           <td class="base-table__image-cell">
-            <div v-if="backImageSrc(b)" class="base-table__thumb-wrap">
-              <img :src="backImageSrc(b)!" alt="" class="base-table__thumb" loading="lazy" />
+            <div v-if="TableHelpers.rowImageSrc(b, strapiPublicUrl)" class="base-table__thumb-wrap">
+              <img :src="TableHelpers.rowImageSrc(b, strapiPublicUrl)!" alt="" class="base-table__thumb" loading="lazy" />
             </div>
             <span v-else class="base-table__dash">—</span>
           </td>
@@ -64,11 +86,11 @@
               <span class="base-table__name-text">{{ b.name }}</span>
             </div>
           </td>
-          <td>{{ codeCell(b.code) }}</td>
-          <td>{{ colorLabel(b.color) }}</td>
-          <td>{{ formatPrice(b.price) }}</td>
-          <td>{{ formatDate(b.publishedAt) }}</td>
-          <td>{{ formatDate(b.updatedAt) }}</td>
+          <td>{{ TableHelpers.codeCell(b.code) }}</td>
+          <td>{{ TableHelpers.colorLabel(b.color) }}</td>
+          <td>{{ Format.priceEur(b.price) }}</td>
+          <td>{{ Format.dateTime(b.publishedAt) }}</td>
+          <td>{{ Format.dateTime(b.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === b.documentId" @click="openEditModal(b)">
@@ -94,31 +116,16 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate, formatPriceEur as formatPrice } from '../utils/format';
+import Format from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
-import { extractPlinthImage } from '../utils/plinthImage';
 import { useStrapiPublicUrl } from '../utils/strapiPublicUrl';
 import { defaultBacksResponse, deleteBack, backsListPath, backsListQuery, type Back, type BacksResponse } from '../services/backs';
+import TableHelpers from '../utils/tableHelpers';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
 
 const strapiPublicUrl = useStrapiPublicUrl();
-
-function backImageSrc(b: Back): string | null {
-  return extractPlinthImage(b, strapiPublicUrl.value).src;
-}
-
-function colorLabel(color: string | null): string {
-  const t = color?.trim();
-  if (!t) return 'white';
-  return t;
-}
-
-function codeCell(code: string | null | undefined): string {
-  const t = code?.trim();
-  return t ? t : '—';
-}
 
 const { data, pending, error, refresh } = useFetch<BacksResponse>(backsListPath, {
   key: computed(() => `backs-p${page.value}`),
@@ -133,6 +140,11 @@ const { modalRef: backModalRef, openCreateModal, openEditModal } = useModal<Back
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 async function onBackSaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;
@@ -155,5 +167,34 @@ async function confirmDelete(b: Back) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'back' : 'backs';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteBack(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>

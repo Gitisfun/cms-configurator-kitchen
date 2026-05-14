@@ -19,8 +19,17 @@
       :page="page"
     >
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'worktop' : 'worktops' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'worktop' : 'worktops' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading worktops&hellip;</template>
       <template #error>
@@ -47,6 +56,16 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(worktops.map((x) => x.documentId))"
+                :indeterminate="someOnPageSelected(worktops.map((x) => x.documentId)) && !allOnPageSelected(worktops.map((x) => x.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(worktops.map((x) => x.documentId))"
+              />
+            </th>
             <th scope="col" class="base-table__th-image">Image</th>
             <th scope="col">Name</th>
             <th scope="col">Code</th>
@@ -56,10 +75,13 @@
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="w in worktops" :key="w.documentId">
+        <tr v-for="w in worktops" :key="w.documentId" :class="{ 'base-table__row--selected': isSelected(w.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(w.documentId)" :aria-label="`Select ${w.name}`" @change="toggle(w.documentId)" />
+          </td>
           <td class="base-table__image-cell">
-            <div v-if="worktopImageSrc(w)" class="base-table__thumb-wrap">
-              <img :src="worktopImageSrc(w)!" alt="" class="base-table__thumb" loading="lazy" />
+            <div v-if="TableHelpers.rowImageSrc(w, strapiPublicUrl)" class="base-table__thumb-wrap">
+              <img :src="TableHelpers.rowImageSrc(w, strapiPublicUrl)!" alt="" class="base-table__thumb" loading="lazy" />
             </div>
             <span v-else class="base-table__dash">—</span>
           </td>
@@ -71,10 +93,10 @@
               <span class="base-table__name-text">{{ w.name }}</span>
             </div>
           </td>
-          <td>{{ w.code?.trim() ? w.code : '—' }}</td>
-          <td>{{ formatPrice(w.price) }}</td>
-          <td>{{ formatDate(w.publishedAt) }}</td>
-          <td>{{ formatDate(w.updatedAt) }}</td>
+          <td>{{ TableHelpers.codeCell(w.code) }}</td>
+          <td>{{ Format.priceEur(w.price) }}</td>
+          <td>{{ Format.dateTime(w.publishedAt) }}</td>
+          <td>{{ Format.dateTime(w.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === w.documentId" @click="openEditModal(w)">
@@ -100,9 +122,8 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate, formatPriceEur as formatPrice } from '../utils/format';
+import Format from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
-import { extractPlinthImage } from '../utils/plinthImage';
 import { useStrapiPublicUrl } from '../utils/strapiPublicUrl';
 import {
   defaultWorktopsResponse,
@@ -112,15 +133,12 @@ import {
   type Worktop,
   type WorktopsResponse,
 } from '../services/worktops';
+import TableHelpers from '../utils/tableHelpers';
 
 const PAGE_SIZE = 25;
 const page = ref(1);
 
 const strapiPublicUrl = useStrapiPublicUrl();
-
-function worktopImageSrc(w: Worktop): string | null {
-  return extractPlinthImage(w, strapiPublicUrl.value).src;
-}
 
 const { data, pending, error, refresh } = useFetch<WorktopsResponse>(worktopsListPath, {
   key: computed(() => `worktops-p${page.value}`),
@@ -135,6 +153,10 @@ const { modalRef: worktopModalRef, openCreateModal, openEditModal } = useModal<W
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 async function onWorktopSaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;
@@ -157,5 +179,34 @@ async function confirmDelete(w: Worktop) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'worktop' : 'worktops';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteWorktop(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>

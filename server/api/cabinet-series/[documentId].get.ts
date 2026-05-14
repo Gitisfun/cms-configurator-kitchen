@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   if (!hasPopulate) {
+    sp.set('populate[image]', 'true');
     sp.set('populate[subcategory]', 'true');
     sp.set('populate[category]', 'true');
   }

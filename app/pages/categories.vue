@@ -11,8 +11,17 @@
 
     <BasePanel :pending="pending" :error="!!error" :pagination="pagination" :empty-first-page="categories.length === 0 && page === 1" :empty-off-page="categories.length === 0 && page > 1" :item-count="categories.length" :page="page">
       <template #toolbar>
-        {{ pagination!.total }}
-        {{ pagination!.total === 1 ? 'category' : 'categories' }}
+        <span class="base-panel__summary">
+          <template v-if="hasSelection">{{ selectionCount }} selected</template>
+          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'category' : 'categories' }}</template>
+        </span>
+        <div v-if="hasSelection" class="base-panel__bulk-actions">
+          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
+            <Icon name="lucide:trash-2" class="base-btn__icon" />
+            Delete {{ selectionCount }}
+          </BaseButton>
+          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
+        </div>
       </template>
       <template #loading>Loading categories&hellip;</template>
       <template #error>
@@ -39,13 +48,27 @@
       <BaseTable>
         <template #head>
           <tr>
+            <th scope="col" class="base-table__th-select">
+              <input
+                type="checkbox"
+                class="base-table__checkbox"
+                :checked="allOnPageSelected(categories.map((x) => x.documentId))"
+                :indeterminate="someOnPageSelected(categories.map((x) => x.documentId)) && !allOnPageSelected(categories.map((x) => x.documentId))"
+                aria-label="Select all on this page"
+                @change="togglePage(categories.map((x) => x.documentId))"
+              />
+            </th>
             <th scope="col">Name</th>
+            <th scope="col">Value</th>
             <th scope="col">Published</th>
             <th scope="col">Updated</th>
             <th scope="col" class="base-table__th-actions">Actions</th>
           </tr>
         </template>
-        <tr v-for="cat in categories" :key="cat.documentId">
+        <tr v-for="cat in categories" :key="cat.documentId" :class="{ 'base-table__row--selected': isSelected(cat.documentId) }">
+          <td class="base-table__td-select">
+            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(cat.documentId)" :aria-label="`Select ${cat.name}`" @change="toggle(cat.documentId)" />
+          </td>
           <td>
             <div class="base-table__name">
               <span class="base-table__icon">
@@ -54,8 +77,11 @@
               <span class="base-table__name-text">{{ cat.name }}</span>
             </div>
           </td>
-          <td>{{ formatDate(cat.publishedAt) }}</td>
-          <td>{{ formatDate(cat.updatedAt) }}</td>
+          <td>
+            <span class="categories-page__value">{{ cat.value?.trim() ? cat.value : '—' }}</span>
+          </td>
+          <td>{{ Format.dateTime(cat.publishedAt) }}</td>
+          <td>{{ Format.dateTime(cat.updatedAt) }}</td>
           <td class="base-table__actions">
             <div class="base-table__action-btns">
               <BaseButton type="button" variant="text" :disabled="deletingDocumentId === cat.documentId" @click="openEditModal(cat)">
@@ -81,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatDateTime as formatDate } from '../utils/format';
+import Format from '../utils/format';
 import { getFetchErrorMessage } from '../utils/fetchErrorMessage';
 import { categoriesListPath, categoriesListQuery, defaultCategoriesResponse, deleteCategory, type Category, type CategoriesResponse } from '../services/categories';
 
@@ -101,6 +127,10 @@ const { modalRef: categoryModalRef, openCreateModal, openEditModal } = useModal<
 const { requestConfirm } = useConfirmDialog();
 const toast = useToast();
 const deletingDocumentId = ref<string | null>(null);
+const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
+const bulkDeleting = ref(false);
+
+watch(page, () => clearSelection());
 
 async function onCategorySaved(payload: { resetPage: boolean }) {
   if (payload.resetPage) page.value = 1;
@@ -123,5 +153,34 @@ async function confirmDelete(cat: Category) {
   } finally {
     deletingDocumentId.value = null;
   }
+}
+
+async function confirmBulkDelete() {
+  const ids = [...selectedIds.value];
+  if (!ids.length) return;
+  const noun = ids.length === 1 ? 'category' : 'categories';
+  const ok = await requestConfirm({
+    title: `Delete ${ids.length} ${noun}?`,
+    message: `Permanently delete ${ids.length} selected ${noun}? This cannot be undone.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true,
+  });
+  if (!ok) return;
+  bulkDeleting.value = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const id of ids) {
+    try {
+      await deleteCategory(id);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  bulkDeleting.value = false;
+  clearSelection();
+  await refresh();
+  if (failed === 0) toast.success(`Deleted ${deleted} ${noun}.`);
+  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
 }
 </script>

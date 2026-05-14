@@ -8,6 +8,7 @@ export function cabinetTypesListQuery(page: number, pageSize: number) {
   return {
     'pagination[page]': page,
     'pagination[pageSize]': pageSize,
+    'populate[image]': 'true',
     'populate[depthOptions]': 'true',
     /** Used to decide if variant height is allowed (fixed series carcase height). */
     'populate[cabinetSeries]': 'true',

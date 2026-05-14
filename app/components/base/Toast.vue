@@ -60,14 +60,15 @@ defineEmits<{
 <style scoped>
 .base-toast {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   width: min(100%, 26rem);
-  padding: 0.875rem 0.75rem 0.875rem 1rem;
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
   border-radius: var(--card-radius);
   border: 1px solid var(--toast-border, var(--color-border));
+  border-left: 3px solid var(--toast-accent, var(--color-border));
   background: var(--toast-bg, var(--color-surface-card));
-  box-shadow: var(--card-shadow-hover);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
   font-size: var(--paragraph-size-small);
   line-height: var(--line-height-body);
   color: var(--toast-color, var(--color-text-primary));
@@ -76,6 +77,7 @@ defineEmits<{
 .base-toast--success {
   --toast-bg: var(--color-success-muted);
   --toast-border: rgba(0, 166, 81, 0.28);
+  --toast-accent: var(--color-success);
   --toast-color: #036835;
 }
 
@@ -86,6 +88,7 @@ defineEmits<{
 .base-toast--info {
   --toast-bg: var(--color-info-muted);
   --toast-border: rgba(27, 58, 92, 0.2);
+  --toast-accent: var(--color-info);
   --toast-color: var(--color-brand-secondary);
 }
 
@@ -96,6 +99,7 @@ defineEmits<{
 .base-toast--danger {
   --toast-bg: var(--color-error-muted);
   --toast-border: rgba(197, 48, 48, 0.35);
+  --toast-accent: var(--color-error);
   --toast-color: var(--color-error);
 }
 
@@ -105,7 +109,6 @@ defineEmits<{
 
 .base-toast__icon {
   flex-shrink: 0;
-  margin-top: 0.1rem;
 }
 
 .base-toast__svg {
@@ -209,7 +212,7 @@ defineEmits<{
   margin: 0;
   flex: 1;
   min-width: 0;
-  padding-top: 0.05rem;
+  font-weight: 500;
 }
 
 .base-toast__close {
