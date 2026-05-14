@@ -44,7 +44,7 @@
     </div>
 
     <div v-show="expanded" class="catalog-type-block__detail">
-      <ProductsPriceMatrix
+      <CatalogPriceMatrix
         :cabinet-type="cabinetType"
         :variants="sortedVariants"
         :price-classes="priceClasses"
@@ -58,7 +58,7 @@
         @add-price="(v, pc) => $emit('open-add-price', v, pc)"
       />
 
-      <ProductsDepthSection
+      <CatalogDepthSection
         :depth-options="sortedDepthOptions"
         :unlinking-document-id="depthUnlinkingDocumentId"
         @link="onLinkDepthOptions"
@@ -66,7 +66,7 @@
         @unlink="confirmUnlinkDepthOption"
       />
 
-      <ProductsSurchargeSection
+      <CatalogSurchargeSection
         :surcharge-links="sortedSurchargeLinks"
         :price-classes="priceClasses"
         :locks-variant-height="locksVariantHeight"

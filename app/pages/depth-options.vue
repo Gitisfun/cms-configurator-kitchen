@@ -151,7 +151,7 @@ const bulkDeleting = ref(false);
 watch(page, () => clearSelection());
 
 function goToProducts() {
-  void navigateTo('/products');
+  void navigateTo('/catalog');
 }
 
 async function onSaved(payload: { resetPage: boolean }) {

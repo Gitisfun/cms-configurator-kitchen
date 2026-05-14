@@ -1,317 +1,38 @@
 <template>
   <div>
-    <CmsPageHeader
-      title="Products"
-      description="Cabinet catalog by series. Open a series to manage types, width variants, and price groups in one place."
-    >
-      <template #actions>
-        <BaseButton type="button" @click="openCreateModal">
-          <Icon name="lucide:plus" class="base-btn__icon" />
-          Add series
-        </BaseButton>
-      </template>
-    </CmsPageHeader>
+    <CmsPageHeader title="Products" description="Manage sellable products and how they appear in the configurator. Content for this area will be added here." />
 
     <BasePanel
-      :pending="pending"
-      :error="!!error"
-      :pagination="pagination"
-      :empty-first-page="rows.length === 0 && page === 1"
-      :empty-off-page="rows.length === 0 && page > 1"
-      :item-count="rows.length"
-      :page="page"
+      :pending="false"
+      :error="false"
+      :pagination="null"
+      :empty-first-page="true"
+      :empty-off-page="false"
+      :item-count="0"
+      :page="1"
     >
-      <template #toolbar>
-        <span class="base-panel__summary">
-          <template v-if="hasSelection">{{ selectionCount }} selected</template>
-          <template v-else>{{ pagination!.total }} {{ pagination!.total === 1 ? 'series' : 'series' }}</template>
-        </span>
-        <div v-if="hasSelection" class="base-panel__bulk-actions">
-          <BaseButton type="button" size="sm" variant="outlined" danger :loading="bulkDeleting" @click="confirmBulkDelete">
-            <Icon name="lucide:trash-2" class="base-btn__icon" />
-            Delete {{ selectionCount }}
-          </BaseButton>
-          <BaseButton type="button" size="sm" variant="text" @click="clearSelection">Clear</BaseButton>
-        </div>
-      </template>
-      <template #loading>Loading series&hellip;</template>
-      <template #error>
-        <Icon name="lucide:alert-triangle" class="base-panel__alert-icon" />
-        <span>Failed to load cabinet series.</span>
-        <BaseButton type="button" variant="outlined" size="sm" @click="refresh()"> Retry </BaseButton>
-      </template>
       <template #empty>
         <div class="base-panel__empty-icon">
           <Icon name="lucide:package" />
         </div>
-        <h3 class="base-panel__empty-title">No series yet</h3>
-        <p class="base-panel__empty-desc">Create a cabinet series, then open its catalog to add types, variants, and prices.</p>
-        <BaseButton type="button" @click="openCreateModal">
-          <Icon name="lucide:plus" class="base-btn__icon" />
-          Add series
-        </BaseButton>
-      </template>
-      <template #empty-offpage>
-        <p class="base-panel__empty-page">No series on this page.</p>
-        <BaseButton type="button" variant="outlined" @click="page = 1"> Back to first page </BaseButton>
-      </template>
-
-      <BaseTable>
-        <template #head>
-          <tr>
-            <th scope="col" class="base-table__th-select">
-              <input
-                type="checkbox"
-                class="base-table__checkbox"
-                :checked="allOnPageSelected(rows.map((r) => r.documentId))"
-                :indeterminate="someOnPageSelected(rows.map((r) => r.documentId)) && !allOnPageSelected(rows.map((r) => r.documentId))"
-                aria-label="Select all on this page"
-                @change="togglePage(rows.map((r) => r.documentId))"
-              />
-            </th>
-            <th scope="col" class="products-page__th-image">Image</th>
-            <th scope="col">Name</th>
-            <th scope="col">Carcase height</th>
-            <th scope="col">Default depth</th>
-            <th scope="col">Product line</th>
-            <th scope="col">Category / subcategory</th>
-            <th scope="col" class="products-page__th-catalog">Catalog</th>
-            <th scope="col">Updated</th>
-            <th scope="col" class="base-table__th-actions">Actions</th>
-          </tr>
-        </template>
-        <tr v-for="row in rows" :key="row.documentId" :class="{ 'base-table__row--selected': isSelected(row.documentId) }">
-          <td class="base-table__td-select">
-            <input type="checkbox" class="base-table__checkbox" :checked="isSelected(row.documentId)" :aria-label="`Select ${row.name}`" @change="toggle(row.documentId)" />
-          </td>
-          <td class="products-page__td-image">
-            <img v-if="seriesImageSrc(row)" :src="seriesImageSrc(row)" alt="" class="products-page__series-thumb" loading="lazy" width="40" height="40" />
-            <span v-else class="products-page__series-thumb-placeholder" aria-hidden="true">—</span>
-          </td>
-          <td>
-            <div class="base-table__name">
-              <span class="base-table__icon">
-                <Icon name="lucide:box" />
-              </span>
-              <NuxtLink :to="`/products/${row.documentId}`" class="products-page__name-link">
-                {{ row.name }}
-              </NuxtLink>
-            </div>
-          </td>
-          <td>{{ row.carcaseHeight != null ? `${row.carcaseHeight} mm` : '—' }}</td>
-          <td>{{ row.defaultCarcaseDepth != null ? `${row.defaultCarcaseDepth} mm` : '—' }}</td>
-          <td>{{ productLineLabel(row.productLine) }}</td>
-          <td>{{ seriesTaxonomyLabel(row) }}</td>
-          <td>
-            <NuxtLink :to="`/products/${row.documentId}`" class="products-page__catalog-link">
-              <Icon name="lucide:layout-grid" class="products-page__catalog-icon" />
-              Open catalog
-            </NuxtLink>
-          </td>
-          <td>{{ Format.dateTime(row.updatedAt) }}</td>
-          <td class="base-table__actions">
-            <div class="base-table__action-btns">
-              <BaseButton type="button" variant="text" :disabled="deletingDocumentId === row.documentId" @click="openEditModal(row)">
-                <Icon name="lucide:pencil" class="base-btn__icon" />
-                Edit
-              </BaseButton>
-              <BaseButton type="button" variant="text" danger :disabled="deletingDocumentId === row.documentId" @click="confirmDelete(row)">
-                <Icon name="lucide:trash-2" class="base-btn__icon" />
-                Delete
-              </BaseButton>
-            </div>
-          </td>
-        </tr>
-      </BaseTable>
-
-      <template #pagination>
-        <BasePagination v-model:page="page" :page-count="pagination!.pageCount" :disabled="pending" aria-label="Product series pages" variant="panel" />
+        <h3 class="base-panel__empty-title">Products</h3>
+        <p class="base-panel__empty-desc">This page is reserved for product management. Cabinet series and catalog editing live under Catalog.</p>
+        <NuxtLink to="/catalog" class="products-placeholder__link">
+          <BaseButton type="button" variant="outlined">
+            <Icon name="lucide:layout-grid" class="base-btn__icon" />
+            Open catalog
+          </BaseButton>
+        </NuxtLink>
       </template>
     </BasePanel>
-
-    <ModalCabinetSeries ref="modalRef" @saved="onSaved" />
   </div>
 </template>
 
-<script setup lang="ts">
-import Format from '../../utils/format';
-import { extractPlinthImage } from '../../utils/plinthImage';
-import { useStrapiPublicUrl } from '../../utils/strapiPublicUrl';
-import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
-import {
-  cabinetSeriesListPath,
-  cabinetSeriesListQuery,
-  defaultCabinetSeriesResponse,
-  deleteCabinetSeries,
-  type CabinetSeries,
-  type CabinetSeriesListResponse,
-} from '../../services/cabinet-series';
-
-const strapiPublicUrl = useStrapiPublicUrl();
-
-const PAGE_SIZE = 25;
-const page = ref(1);
-
-const { data, pending, error, refresh } = useFetch<CabinetSeriesListResponse>(cabinetSeriesListPath, {
-  key: computed(() => `products-series-p${page.value}`),
-  query: computed(() => cabinetSeriesListQuery(page.value, PAGE_SIZE)),
-  default: () => defaultCabinetSeriesResponse(PAGE_SIZE),
-});
-
-const rows = computed(() => data.value?.data ?? []);
-const pagination = computed(() => data.value?.meta?.pagination);
-
-const { modalRef, openCreateModal, openEditModal } = useModal<CabinetSeries>();
-const { requestConfirm } = useConfirmDialog();
-const toast = useToast();
-const deletingDocumentId = ref<string | null>(null);
-const { selectedIds, hasSelection, selectionCount, isSelected, toggle, togglePage, allOnPageSelected, someOnPageSelected, clearSelection } = useTableSelection();
-const bulkDeleting = ref(false);
-
-watch(page, () => clearSelection());
-
-function productLineLabel(pl: string | null): string {
-  if (!pl) return '—';
-  const map: Record<string, string> = { standard: 'Standard', cLine: 'C-Line', xLine: 'X-Line' };
-  return map[pl] ?? pl;
-}
-
-function relationName(rel: CabinetSeries['category'] | CabinetSeries['subcategory']): string {
-  if (!rel) return '';
-  if (typeof rel === 'object' && rel !== null && 'name' in rel) return (rel as { name: string }).name;
-  if (typeof rel === 'object' && rel !== null && 'data' in rel && (rel as { data: { name: string } | null }).data) {
-    return (rel as { data: { name: string } }).data.name;
-  }
-  return '';
-}
-
-function seriesTaxonomyLabel(row: CabinetSeries): string {
-  const cat = relationName(row.category);
-  if (cat) return cat;
-  const sub = relationName(row.subcategory);
-  if (sub) return sub;
-  return '—';
-}
-
-function seriesImageSrc(row: CabinetSeries): string | null {
-  return extractPlinthImage(row, strapiPublicUrl.value).src;
-}
-
-async function onSaved(payload: { resetPage: boolean }) {
-  if (payload.resetPage) page.value = 1;
-  await refresh();
-}
-
-async function confirmDelete(row: CabinetSeries) {
-  const ok = await requestConfirm({
-    title: 'Delete series?',
-    message: `Delete "${row.name}"? This cannot be undone.`,
-  });
-  if (!ok) return;
-  deletingDocumentId.value = row.documentId;
-  try {
-    await deleteCabinetSeries(row.documentId);
-    await refresh();
-    toast.success('Cabinet series deleted.');
-  } catch (e: unknown) {
-    toast.danger(getFetchErrorMessage(e, 'Failed to delete cabinet series.'));
-  } finally {
-    deletingDocumentId.value = null;
-  }
-}
-
-async function confirmBulkDelete() {
-  const ids = [...selectedIds.value];
-  if (!ids.length) return;
-  const noun = ids.length === 1 ? 'series' : 'series';
-  const ok = await requestConfirm({
-    title: `Delete ${ids.length} ${noun}?`,
-    message: `Permanently delete ${ids.length} selected cabinet ${noun}? This cannot be undone.`,
-    confirmLabel: `Delete ${ids.length}`,
-    danger: true,
-  });
-  if (!ok) return;
-  bulkDeleting.value = true;
-  let deleted = 0;
-  let failed = 0;
-  for (const id of ids) {
-    try {
-      await deleteCabinetSeries(id);
-      deleted++;
-    } catch {
-      failed++;
-    }
-  }
-  bulkDeleting.value = false;
-  clearSelection();
-  await refresh();
-  if (failed === 0) toast.success(`Deleted ${deleted} cabinet ${noun}.`);
-  else toast.danger(`Deleted ${deleted} of ${ids.length} ${noun}. ${failed} failed.`);
-}
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
-.products-page__name-link {
-  color: var(--color-brand);
-  font-weight: var(--font-weight-semibold);
+.products-placeholder__link {
   text-decoration: none;
-}
-
-.products-page__name-link:hover {
-  text-decoration: underline;
-}
-
-.products-page__catalog-link {
   display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--paragraph-size-small);
-  color: var(--color-brand);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.products-page__catalog-link:hover {
-  text-decoration: underline;
-}
-
-.products-page__catalog-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-}
-
-.products-page__th-catalog {
-  white-space: nowrap;
-}
-
-.products-page__th-image {
-  width: 3.25rem;
-}
-
-.products-page__td-image {
-  vertical-align: middle;
-}
-
-.products-page__series-thumb {
-  display: block;
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: var(--button-radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-hover);
-}
-
-.products-page__series-thumb-placeholder {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--button-radius);
-  border: 1px dashed var(--color-border);
-  font-size: var(--paragraph-size-small);
-  color: var(--color-text-muted);
 }
 </style>

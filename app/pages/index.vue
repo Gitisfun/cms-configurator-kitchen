@@ -68,9 +68,9 @@
       <section class="dashboard__card">
         <h2 class="dashboard__card-title">Quick Actions</h2>
         <div class="dashboard__actions">
-          <NuxtLink to="/products" class="dashboard__action">
-            <Icon name="lucide:plus" class="dashboard__action-icon" />
-            <span>Add Product</span>
+          <NuxtLink to="/catalog" class="dashboard__action">
+            <Icon name="lucide:layout-grid" class="dashboard__action-icon" />
+            <span>Open catalog</span>
           </NuxtLink>
           <NuxtLink to="/categories" class="dashboard__action">
             <Icon name="lucide:folder-plus" class="dashboard__action-icon" />

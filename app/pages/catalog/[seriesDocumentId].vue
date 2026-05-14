@@ -1,9 +1,9 @@
 <template>
   <div class="catalog-page">
     <div class="catalog-page__toolbar">
-      <NuxtLink to="/products" class="catalog-page__back">
+      <NuxtLink to="/catalog" class="catalog-page__back">
         <Icon name="lucide:arrow-left" class="catalog-page__back-icon" />
-        All products
+        All series
       </NuxtLink>
     </div>
 
@@ -13,12 +13,12 @@
         <Icon name="lucide:alert-triangle" class="base-panel__alert-icon" />
         <span>Could not load this series. It may have been deleted.</span>
         <BaseButton type="button" variant="outlined" size="sm" @click="refresh()"> Retry </BaseButton>
-        <NuxtLink to="/products" class="catalog-page__back-inline"> Back to products </NuxtLink>
+        <NuxtLink to="/catalog" class="catalog-page__back-inline"> Back to catalog </NuxtLink>
       </template>
 
       <template #default>
         <div class="catalog-page__panel-body">
-          <ProductsSeriesHeader
+          <CatalogSeriesHeader
             v-if="series"
             :series="series"
             :taxonomy-line="seriesTaxonomyLine"
@@ -37,7 +37,7 @@
               to see price columns here.
             </p>
 
-            <ProductsTypeBlock
+            <CatalogTypeBlock
               v-for="ct in types"
               :key="ct.documentId"
               :cabinet-type="ct"
@@ -71,7 +71,6 @@
 </template>
 
 <script setup lang="ts">
-import { getFetchErrorMessage } from '../../utils/fetchErrorMessage';
 import { strapiRelationList } from '../../utils/strapiRelationList';
 import { extractRelationNumericId } from '../../utils/strapiRelationMeta';
 import { getCabinetSeriesById, type CabinetSeries } from '../../services/cabinet-series';
@@ -104,7 +103,7 @@ const {
   error,
   refresh,
 } = useAsyncData<CatalogPayload | null>(
-  () => `product-catalog-${seriesDocumentId.value}`,
+  () => `catalog-series-detail-${seriesDocumentId.value}`,
   async () => {
     const docId = seriesDocumentId.value;
     if (!docId) return null;

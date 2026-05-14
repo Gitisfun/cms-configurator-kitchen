@@ -60,6 +60,7 @@ const contentItems = [
 ];
 
 const materialItems = [
+  { to: '/catalog', icon: 'lucide:layout-grid', text: 'Catalog' },
   { to: '/fronts', icon: 'lucide:panels-top-left', text: 'Fronts' },
   { to: '/backs', icon: 'lucide:panel-bottom', text: 'Backs' },
   { to: '/handles', icon: 'lucide:grip-vertical', text: 'Handles' },
